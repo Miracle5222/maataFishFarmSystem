@@ -13,6 +13,7 @@
                 
                 <!-- MAIN DISHES -->
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Deep-Fry+Hito" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #27ae60; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Deep-Fry Hito</h4>
                     </div>
@@ -23,6 +24,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Adobo+Hito" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #27ae60; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Adobo Hito</h4>
                     </div>
@@ -33,6 +35,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Native+Chicken" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #27ae60; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Native Chicken</h4>
                     </div>
@@ -43,6 +46,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Sisig" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #27ae60; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Sisig</h4>
                     </div>
@@ -53,6 +57,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Calamares" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #27ae60; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Calamares</h4>
                     </div>
@@ -64,6 +69,7 @@
 
                 <!-- SNACKS -->
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=French+Fries" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #52be80; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">French Fries</h4>
                     </div>
@@ -74,6 +80,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Siomai" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #52be80; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Siomai</h4>
                     </div>
@@ -84,6 +91,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Lumpia" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #52be80; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Lumpia</h4>
                     </div>
@@ -95,6 +103,7 @@
 
                 <!-- DRINKS -->
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Softdrinks" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #229954; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Softdrinks</h4>
                     </div>
@@ -105,6 +114,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Beer" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #229954; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Beer</h4>
                     </div>
@@ -115,6 +125,7 @@
                 </div>
 
                 <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <img src="https://via.placeholder.com/300x200?text=Juice" style="width: 100%; height: 200px; object-fit: cover;">
                     <div style="background-color: #229954; color: white; padding: 15px; text-align: center;">
                         <h4 style="margin: 0;">Juice</h4>
                     </div>

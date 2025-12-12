@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $special_requests = htmlspecialchars($_POST['special_requests'] ?? '');
     
     if ($name && $email && $phone && $reservation_type_form && $num_guests && $reservation_date && $reservation_time) {
-        $success_message = "Thank you $name! Your reservation for $num_guests guest(s) has been received. We'll contact you soon at $phone to confirm the details.";
+        $success_message = "Thank you $name! Your reservation for $num_guests guest(s) has been received. We'll contact you soon at $email to confirm the details.";
     }
 }
 ?>
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <li style="margin-bottom: 5px;"><strong>• Tilapia</strong> - Most in-demand</li>
                     <li style="margin-bottom: 5px;"><strong>• Catfish (Hito)</strong> - Perfect for cooking</li>
                     <li style="margin-bottom: 5px;"><strong>• Japanese Koi</strong> - Premium option</li>
-                    <li><strong>• Fish Fry</strong> - Available from our nursery</li>
+        
                 </ul>
                 <p style="color: #27ae60; font-weight: 600;">Call or message us for direct fish orders!</p>
             </div>

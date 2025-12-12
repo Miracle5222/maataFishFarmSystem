@@ -51,7 +51,7 @@
             <h2 style="text-align: center; margin-bottom: 40px; color: #27ae60; font-size: 32px;">Fresh Fish Daily</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                 <div style="background: #f8f9fa; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <img src="https://via.placeholder.com/200x150" style="width: 100%; height: 150px; object-fit: cover;">
+                    <img src="../assets/img/tilapia.jpg" style="width: 100%; height: 250px; object-fit: cover;">
                     <div style="padding: 15px;">
                         <h4 style="margin-bottom: 5px;">Tilapia</h4>
                         <p style="color: #666; margin-bottom: 10px;">Most in-demand fresh tilapia</p>
@@ -59,7 +59,7 @@
                     </div>
                 </div>
                 <div style="background: #f8f9fa; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <img src="https://via.placeholder.com/200x150" style="width: 100%; height: 150px; object-fit: cover;">
+                    <img src="../assets/img/catfish.jpg" style="width: 100%; height: 250px; object-fit: cover;">
                     <div style="padding: 15px;">
                         <h4 style="margin-bottom: 5px;">Catfish</h4>
                         <p style="color: #666; margin-bottom: 10px;">Fresh farm-raised catfish</p>
@@ -67,21 +67,14 @@
                     </div>
                 </div>
                 <div style="background: #f8f9fa; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <img src="https://via.placeholder.com/200x150" style="width: 100%; height: 150px; object-fit: cover;">
+                    <img src="../assets/img/koi.jpg" style="width: 100%; height: 250px; object-fit: cover;">
                     <div style="padding: 15px;">
                         <h4 style="margin-bottom: 5px;">Japanese Koi</h4>
                         <p style="color: #666; margin-bottom: 10px;">Premium Japanese Koi fish</p>
                         <p style="color: #27ae60; font-weight: bold;">₱200/kg</p>
                     </div>
                 </div>
-                <div style="background: #f8f9fa; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <img src="https://via.placeholder.com/200x150" style="width: 100%; height: 150px; object-fit: cover;">
-                    <div style="padding: 15px;">
-                        <h4 style="margin-bottom: 5px;">Fish Fry</h4>
-                        <p style="color: #666; margin-bottom: 10px;">Small fish from our nursery</p>
-                        <p style="color: #27ae60; font-weight: bold;">Available</p>
-                    </div>
-                </div>
+              
             </div>
         </div>
     </section>
