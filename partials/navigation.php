@@ -105,6 +105,21 @@
         </ul>
     </li>
 
+    <!-- Products -->
+    <li class="sidenav-item">
+        <a href="javascript:" class="sidenav-link sidenav-toggle">
+            <i class="sidenav-icon feather icon-package"></i>
+            <div>Products</div>
+        </a>
+        <ul class="sidenav-menu">
+            <li class="sidenav-item"><a href="products_fish.php" class="sidenav-link"><div>Fish Species</div></a></li>
+            <li class="sidenav-item"><a href="products_menu.php" class="sidenav-link"><div>Menu Items</div></a></li>
+            <li class="sidenav-item"><a href="products_list.php" class="sidenav-link"><div>All Products</div></a></li>
+            <li class="sidenav-item"><a href="products_add.php" class="sidenav-link"><div>Add Product</div></a></li>
+            <li class="sidenav-item"><a href="inventory_manage.php" class="sidenav-link"><div>Manage Inventory</div></a></li>
+        </ul>
+    </li>
+
     <li class="sidenav-divider mb-1"></li>
 
     <li class="sidenav-header small font-weight-semibold">Tools</li>
