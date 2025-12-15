@@ -63,7 +63,8 @@
                                 <div class="ui-icon ui-icon-sm feather icon-user-plus bg-info border-0 text-white"></div>
                                 <div class="media-body line-height-condenced ml-3">
                                     <div class="text-dark">You have
-                                        <strong>4</strong> new followers</div>
+                                        <strong>4</strong> new followers
+                                    </div>
                                     <div class="text-light small mt-1">
                                         Phasellus nunc nisl, posuere cursus pretium nec, dictum vehicula tellus.
                                     </div>
@@ -163,14 +164,14 @@
                         </span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right">
-                        <a href="javascript:" class="dropdown-item">
+                        <a href="user_profile.php" class="dropdown-item">
                             <i class="feather icon-user text-muted"></i> &nbsp; My profile</a>
-                        <a href="javascript:" class="dropdown-item">
+                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#messagesModal">
                             <i class="feather icon-mail text-muted"></i> &nbsp; Messages</a>
-                        <a href="javascript:" class="dropdown-item">
+                        <a href="user_profile.php" class="dropdown-item">
                             <i class="feather icon-settings text-muted"></i> &nbsp; Account settings</a>
                         <div class="dropdown-divider"></div>
-                        <a href="javascript:" class="dropdown-item">
+                        <a href="handlers/logout.php" class="dropdown-item" onclick="return confirm('Are you sure you want to sign out?');">
                             <i class="feather icon-power text-danger"></i> &nbsp; Log Out</a>
                     </div>
                 </div>
