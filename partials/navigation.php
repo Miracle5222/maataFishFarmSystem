@@ -45,12 +45,13 @@
             <div>Reservation</div>
         </a>
         <ul class="sidenav-menu">
-            <li class="sidenav-item"><a href="reservation_new.php" class="sidenav-link">
-                    <div>New Reservation</div>
-                </a></li>
-            <li class="sidenav-item"><a href="reservation_list.php" class="sidenav-link">
+            <li class="sidenav-item"><a href="reservations_list.php" class="sidenav-link">
                     <div>View Reservations</div>
                 </a></li>
+            <li class="sidenav-item"><a href="cancelled_reservations.php" class="sidenav-link">
+                    <div>Cancelled Reservation</div>
+                </a></li>
+
         </ul>
     </li>
 

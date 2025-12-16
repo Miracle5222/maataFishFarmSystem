@@ -1,0 +1,133 @@
+[2025-12-16 19:02:05] FAILED to send email to neil@gmail.com | reservation: RES-20251216-4699 | status: confirmed
+Subject: Reservation RES-20251216-4699 - Status updated to Confirmed
+Body: Hello neil gungob,
+
+Your reservation (No: RES-20251216-4699) scheduled on 2025-12-30 at 16:56:00 has been updated to: Confirmed.
+
+Special requests: birth day
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:02:15] FAILED to send email to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: confirmed
+Subject: Reservation RES-20251216-1329 - Status updated to Confirmed
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Confirmed.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:04:17] FAILED to send email to neil@gmail.com | reservation: RES-20251216-4699 | status: completed
+Subject: Reservation RES-20251216-4699 - Status updated to Completed
+Body: Hello neil gungob,
+
+Your reservation (No: RES-20251216-4699) scheduled on 2025-12-30 at 16:56:00 has been updated to: Completed.
+
+Special requests: birth day
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:04:28] FAILED to send email to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: completed
+Subject: Reservation RES-20251216-1329 - Status updated to Completed
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Completed.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:07:06] FAILED to send email to neil@gmail.com | reservation: RES-20251216-4699 | status: cancelled
+Subject: Reservation RES-20251216-4699 - Status updated to Cancelled
+Body: Hello neil gungob,
+
+Your reservation (No: RES-20251216-4699) scheduled on 2025-12-30 at 16:56:00 has been updated to: Cancelled.
+
+Special requests: birth day
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:07:19] FAILED to send email to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: cancelled
+Subject: Reservation RES-20251216-1329 - Status updated to Cancelled
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Cancelled.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:18:42] PHP mail() FAILED to send to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: confirmed
+Subject: Reservation RES-20251216-1329 - Status updated to Confirmed
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Confirmed.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:22:13] PHP mail() FAILED to send to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: completed
+Subject: Reservation RES-20251216-1329 - Status updated to Completed
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Completed.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:42:22] PHP mail() FAILED to send to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: cancelled
+Subject: Reservation RES-20251216-1329 - Status updated to Cancelled
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Cancelled.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:49:33] PHP mail() FAILED to send to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: completed
+Subject: Reservation RES-20251216-1329 - Status updated to Completed
+Body: Hello roneil bansas,
+
+Your reservation (No: RES-20251216-1329) scheduled on 2025-12-17 at 01:39:00 has been updated to: Completed.
+
+Special requests: wedding anneversarry
+
+If you have any questions, please reply to this email or contact our support.
+
+Regards,
+Maata Fish Farm
+---
+[2025-12-16 19:51:33] Email sent to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: confirmed
+[2025-12-16 19:52:33] Email sent to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: cancelled
+[2025-12-16 19:53:12] Email sent to roneilbansas5222@gmail.com | reservation: RES-20251216-1329 | status: completed

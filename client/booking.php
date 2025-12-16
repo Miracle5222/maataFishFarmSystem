@@ -1,22 +1,19 @@
-<?php 
+<?php
 include 'partials/header.php';
+include '../config/db.php';
 
 $reservation_type = isset($_GET['type']) ? htmlspecialchars($_GET['type']) : '';
+$error_message = '';
 $success_message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = htmlspecialchars($_POST['name'] ?? '');
-    $email = htmlspecialchars($_POST['email'] ?? '');
-    $phone = htmlspecialchars($_POST['phone'] ?? '');
-    $reservation_type_form = htmlspecialchars($_POST['reservation_type'] ?? '');
-    $num_guests = htmlspecialchars($_POST['num_guests'] ?? '');
-    $reservation_date = htmlspecialchars($_POST['reservation_date'] ?? '');
-    $reservation_time = htmlspecialchars($_POST['reservation_time'] ?? '');
-    $special_requests = htmlspecialchars($_POST['special_requests'] ?? '');
-    
-    if ($name && $email && $phone && $reservation_type_form && $num_guests && $reservation_date && $reservation_time) {
-        $success_message = "Thank you $name! Your reservation for $num_guests guest(s) has been received. We'll contact you soon at $email to confirm the details.";
-    }
+// Check for success message from handler
+if (isset($_GET['success'])) {
+    $success_message = "Thank you! Your reservation has been successfully submitted. Our team will contact you shortly to confirm the details.";
+}
+
+// Check for error message
+if (isset($_GET['error'])) {
+    $error_message = htmlspecialchars($_GET['error']);
 }
 ?>
 
@@ -24,7 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section style="padding: 40px 20px;">
         <div class="container">
             <h1 style="color: #27ae60; margin-bottom: 30px;">Reserve Your Table</h1>
-            
+
+            <?php if ($error_message): ?>
+                <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 30px;">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if ($success_message): ?>
                 <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 30px;">
                     <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
@@ -32,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <form method="POST" style="display: grid; gap: 20px;">
-                    
+                <form method="POST" action="../handlers/booking_handler.php" style="display: grid; gap: 20px;">
+
                     <div>
                         <label for="name" style="display: block; font-weight: 600; margin-bottom: 8px; color: #27ae60;">Full Name *</label>
                         <input type="text" id="name" name="name" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
@@ -54,8 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <select id="reservation_type" name="reservation_type" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
                             <option value="">-- Select Reservation Type --</option>
                             <option value="dine-in">Dine-In</option>
-                            <option value="event">Private Event/Celebration</option>
-                            <option value="family-gathering">Family Gathering</option>
+                            <option value="farm visit">Farm Visit</option>
+                            <option value="private-event">Private Event</option>
+
                         </select>
                     </div>
 
@@ -93,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <li style="margin-bottom: 8px;"><strong>✓</strong> We will confirm your reservation via phone within 2 hours</li>
                     <li style="margin-bottom: 8px;"><strong>✓</strong> Private events and celebrations welcome</li>
                     <li style="margin-bottom: 8px;"><strong>✓</strong> Fresh-cooked meals available daily</li>
+                    <li style="margin-bottom: 8px;"><strong>✓</strong> Farm Visit: Tour our 2-hectare fish farm and learn about sustainable aquaculture</li>
                     <li><strong>✓</strong> Can also order through Facebook Page or direct call</li>
                 </ul>
             </div>
@@ -106,9 +111,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <li style="margin-bottom: 5px;"><strong>• Tilapia</strong> - Most in-demand</li>
                     <li style="margin-bottom: 5px;"><strong>• Catfish (Hito)</strong> - Perfect for cooking</li>
                     <li style="margin-bottom: 5px;"><strong>• Japanese Koi</strong> - Premium option</li>
-        
+
                 </ul>
                 <p style="color: #27ae60; font-weight: 600;">Call or message us for direct fish orders!</p>
+            </div>
+
+            <div style="max-width: 600px; margin: 30px auto; padding: 20px; background-color: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                <h3 style="color: #1976d2; margin-bottom: 10px;"><i class="fas fa-leaf"></i> Visit Our Farm</h3>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Experience authentic farm-to-table dining and learn about our sustainable aquaculture practices.
+                </p>
+                <p style="color: #666; margin-bottom: 10px;"><strong>What to expect:</strong></p>
+                <ul style="list-style: none; color: #666;">
+                    <li style="margin-bottom: 5px;"><strong>• Farm Tour:</strong> See our fish ponds and learn about cultivation techniques</li>
+                    <li style="margin-bottom: 5px;"><strong>• Dining Area:</strong> Enjoy fresh meals in our on-site restaurant</li>
+                    <li style="margin-bottom: 5px;"><strong>• Gift Shop:</strong> Purchase fresh fish and farm products</li>
+                    <li style="margin-bottom: 5px;"><strong>• Photo Opportunities:</strong> Beautiful farm scenery for memorable photos</li>
+                    <li style="margin-bottom: 5px;"><strong>• Educational Programs:</strong> Learn about fish farming and sustainability</li>
+                </ul>
+                <p style="color: #1976d2; font-weight: 600; margin-top: 10px;">Perfect for families, groups, and educational visits!</p>
             </div>
 
         </div>
