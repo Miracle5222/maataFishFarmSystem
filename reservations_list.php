@@ -1,5 +1,6 @@
 <?php
 include 'config/db.php';
+include 'auth_admin.php';
 include 'partials/head.php';
 ?>
 <?php include 'partials/sidenav.php'; ?>

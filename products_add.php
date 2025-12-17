@@ -1,4 +1,5 @@
 <?php
+include 'auth_admin.php';
 // products_add.php - handle add product form submission and show the form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require __DIR__ . '/config/db.php';
@@ -14,9 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Basic validation
     $errors = [];
-    if ($name === '') { $errors[] = 'Product name is required.'; }
-    if ($category === '') { $errors[] = 'Category is required.'; }
-    if ($price <= 0) { $errors[] = 'Price must be greater than zero.'; }
+    if ($name === '') {
+        $errors[] = 'Product name is required.';
+    }
+    if ($category === '') {
+        $errors[] = 'Category is required.';
+    }
+    if ($price <= 0) {
+        $errors[] = 'Price must be greater than zero.';
+    }
 
     if (empty($errors)) {
         // Insert product
@@ -24,15 +31,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt) {
             $stmt->bind_param('sssdsis', $name, $category, $description, $price, $unit, $stock_quantity, $status);
             $ok = $stmt->execute();
-            $product_id = $stmt->insert_id;
+            $product_id = $conn->insert_id;
             $stmt->close();
 
-            if ($ok && $product_id) {
+            if ($ok && $product_id > 0) {
                 // Ensure upload directory exists
                 $uploadDir = __DIR__ . '/assets/img/products/';
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0755, true);
                 }
+
+                // Ensure products table has an `image` column to store main image path
+                $conn->query("ALTER TABLE products ADD COLUMN IF NOT EXISTS image VARCHAR(255) NULL;");
 
                 // Create product_images table if not exists
                 $conn->query("CREATE TABLE IF NOT EXISTS product_images (
@@ -44,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
                 // Helper for saving uploaded file
-                $allowedTypes = ['image/jpeg','image/png','image/gif','image/webp'];
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                 $maxSize = 5 * 1024 * 1024; // 5MB
 
                 // Handle main image
@@ -55,8 +65,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $filename = $product_id . '_' . uniqid() . '.' . $ext;
                         $dest = $uploadDir . $filename;
                         if (move_uploaded_file($f['tmp_name'], $dest)) {
+                            // Save a reference in product_images for gallery and mark as main
                             $ins = $conn->prepare('INSERT INTO product_images (product_id, filename, is_main) VALUES (?, ?, 1)');
-                            if ($ins) { $ins->bind_param('is', $product_id, $filename); $ins->execute(); $ins->close(); }
+                            if ($ins) {
+                                $ins->bind_param('is', $product_id, $filename);
+                                $ins->execute();
+                                $ins->close();
+                            }
+                            // Also save main image filename on products.image for easy access
+                            $upd = $conn->prepare('UPDATE products SET image = ? WHERE id = ?');
+                            if ($upd) {
+                                $upd->bind_param('si', $filename, $product_id);
+                                $upd->execute();
+                                $upd->close();
+                            }
                         }
                     }
                 }
@@ -65,7 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($_FILES['product_gallery']) && is_array($_FILES['product_gallery']['name'])) {
                     for ($i = 0; $i < count($_FILES['product_gallery']['name']); $i++) {
                         $err = $_FILES['product_gallery']['error'][$i];
-                        if ($err !== UPLOAD_ERR_OK) { continue; }
+                        if ($err !== UPLOAD_ERR_OK) {
+                            continue;
+                        }
                         $tmp = $_FILES['product_gallery']['tmp_name'][$i];
                         $orig = $_FILES['product_gallery']['name'][$i];
                         $size = $_FILES['product_gallery']['size'][$i];
@@ -75,7 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $dest = $uploadDir . $filename;
                             if (move_uploaded_file($tmp, $dest)) {
                                 $ins = $conn->prepare('INSERT INTO product_images (product_id, filename, is_main) VALUES (?, ?, 0)');
-                                if ($ins) { $ins->bind_param('is', $product_id, $filename); $ins->execute(); $ins->close(); }
+                                if ($ins) {
+                                    $ins->bind_param('is', $product_id, $filename);
+                                    $ins->execute();
+                                    $ins->close();
+                                }
                             }
                         }
                     }
@@ -97,106 +125,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
 
-                <div class="layout-content">
-                    <div class="container-fluid flex-grow-1 container-p-y">
-                        <h4 class="font-weight-bold py-3 mb-0">Products — Add New Product</h4>
-                        <div class="card mt-3">
-                            <div class="card-body">
-                            <?php if (!empty($errors)): ?>
-                                <div class="alert alert-danger">
-                                    <ul class="mb-0">
-                                        <?php foreach ($errors as $err): ?>
-                                            <li><?php echo htmlspecialchars($err); ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </div>
-                            <?php endif; ?>
-                            <?php if (isset($_GET['success'])): ?>
-                                <div class="alert alert-success">Product added successfully.</div>
-                            <?php endif; ?>
-                            <form method="POST" enctype="multipart/form-data">
-                                <div class="form-group">
-                                    <label for="productName">Product Name *</label>
-                                    <input type="text" id="productName" name="product_name" class="form-control" required>
-                                </div>
+<div class="layout-content">
+    <div class="container-fluid flex-grow-1 container-p-y">
+        <h4 class="font-weight-bold py-3 mb-0">Products — Add New Product</h4>
+        <div class="card mt-3">
+            <div class="card-body">
+                <?php if (!empty($errors)): ?>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <?php foreach ($errors as $err): ?>
+                                <li><?php echo htmlspecialchars($err); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['success'])): ?>
+                    <div class="alert alert-success">Product added successfully.</div>
+                <?php endif; ?>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="productName">Product Name *</label>
+                        <input type="text" id="productName" name="product_name" class="form-control" required>
+                    </div>
 
-                                <div class="form-group">
-                                    <label for="category">Category *</label>
-                                    <select id="category" name="category" class="form-control" required>
-                                        <option value="">-- Select Category --</option>
-                                        <option value="fish">Fish</option>
-                                        <option value="food">Food</option>
-                                        <option value="snack">Snack</option>
-                                        <option value="drink">Drink</option>
-                                    </select>
-                                </div>
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <select id="category" name="category" class="form-control" required>
+                            <option value="">-- Select Category --</option>
+                            <option value="fish">Fish</option>
+                            <option value="food">Food</option>
+                            <option value="snack">Snack</option>
+                            <option value="drink">Drink</option>
+                        </select>
+                    </div>
 
-                                <div class="form-group">
-                                    <label for="description">Description</label>
-                                    <textarea id="description" name="description" class="form-control" rows="3"></textarea>
-                                </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="price">Price *</label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">₱</span>
-                                                </div>
-                                                <input type="number" id="price" name="price" class="form-control" step="0.01" required>
-                                            </div>
-                                        </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="price">Price *</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">₱</span>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="unit">Unit *</label>
-                                            <select id="unit" name="unit" class="form-control" required>
-                                                <option value="">-- Select Unit --</option>
-                                                <option value="kg">kg</option>
-                                                <option value="piece">piece</option>
-                                                <option value="order">order</option>
-                                                <option value="pcs">pcs</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <input type="number" id="price" name="price" class="form-control" step="0.01" required>
                                 </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="stock">Stock Quantity *</label>
-                                            <input type="number" id="stock" name="stock_quantity" class="form-control" min="0" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="status">Status</label>
-                                            <select id="status" name="status" class="form-control">
-                                                <option value="available">Available</option>
-                                                <option value="unavailable">Unavailable</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="productImage">Main Product Image</label>
-                                    <input type="file" id="productImage" name="product_image" class="form-control-file" accept="image/*">
-                                    <small class="form-text text-muted">Upload a primary product image (JPG, PNG). Max 5MB recommended.</small>
-                                </div>
-
-                               
-                                <div class="form-group">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="feather icon-save mr-2"></i> Save Product
-                                    </button>
-                                    <a href="products_list.php" class="btn btn-outline-secondary">Cancel</a>
-                                </div>
-                            </form>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="unit">Unit *</label>
+                                <select id="unit" name="unit" class="form-control" required>
+                                    <option value="">-- Select Unit --</option>
+                                    <option value="kg">kg</option>
+                                    <option value="piece">piece</option>
+                                    <option value="order">order</option>
+                                    <option value="pcs">pcs</option>
+                                </select>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="stock">Stock Quantity *</label>
+                                <input type="number" id="stock" name="stock_quantity" class="form-control" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select id="status" name="status" class="form-control">
+                                    <option value="available">Available</option>
+                                    <option value="unavailable">Unavailable</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productImage">Main Product Image</label>
+                        <input type="file" id="productImage" name="product_image" class="form-control-file" accept="image/*">
+                        <small class="form-text text-muted">Upload a primary product image (JPG, PNG). Max 5MB recommended.</small>
+                    </div>
+
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="feather icon-save mr-2"></i> Save Product
+                        </button>
+                        <a href="products_list.php" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include 'partials/footer.php'; ?>

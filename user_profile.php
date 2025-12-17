@@ -105,15 +105,13 @@ include 'partials/head.php';
                         <h5 class="card-header-title">Quick Actions</h5>
                     </div>
                     <div class="list-group list-group-flush">
-                        <a href="#" class="list-group-item list-group-item-action" data-toggle="modal" data-target="#editProfileModal">
+                        <a href="#" id="quickEditProfile" class="list-group-item list-group-item-action" data-toggle="modal" data-target="#editProfileModal">
                             <i class="feather icon-edit text-primary"></i> &nbsp; Edit Profile
                         </a>
-                        <a href="#" class="list-group-item list-group-item-action" data-toggle="modal" data-target="#changePasswordModal">
+                        <a href="#" id="quickChangePassword" class="list-group-item list-group-item-action" data-toggle="modal" data-target="#changePasswordModal">
                             <i class="feather icon-lock text-warning"></i> &nbsp; Change Password
                         </a>
-                        <a href="#" class="list-group-item list-group-item-action" data-toggle="modal" data-target="#accountSettingsModal">
-                            <i class="feather icon-settings text-info"></i> &nbsp; Account Settings
-                        </a>
+
                         <a href="handlers/logout.php" class="list-group-item list-group-item-action" onclick="return confirm('Are you sure you want to sign out?');">
                             <i class="feather icon-log-out text-danger"></i> &nbsp; Sign Out
                         </a>
@@ -305,4 +303,32 @@ include 'partials/head.php';
             return false;
         }
     });
+
+    // Fallback handlers for Quick Actions: open modals if data attributes don't work
+    (function() {
+        function openModalById(id) {
+            if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+                try {
+                    jQuery('#' + id).modal('show');
+                    return;
+                } catch (e) {}
+            }
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = 'block';
+            el.classList.add('show');
+        }
+
+        var edit = document.getElementById('quickEditProfile');
+        if (edit) edit.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModalById('editProfileModal');
+        });
+
+        var change = document.getElementById('quickChangePassword');
+        if (change) change.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModalById('changePasswordModal');
+        });
+    })();
 </script>

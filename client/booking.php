@@ -58,7 +58,7 @@ if (isset($_GET['error'])) {
                             <option value="">-- Select Reservation Type --</option>
                             <option value="dine-in">Dine-In</option>
                             <option value="farm visit">Farm Visit</option>
-                            <option value="private-event">Private Event</option>
+                            <option value="private-events">Private Event</option>
 
                         </select>
                     </div>
@@ -102,6 +102,69 @@ if (isset($_GET['error'])) {
                 </ul>
             </div>
 
+            <!-- Order Fish Modal -->
+            <?php
+            // Fetch fish products from DB
+            $fishProducts = [];
+            try {
+                $stmt = $conn->prepare("SELECT id, name, price, unit, stock_quantity FROM products WHERE category = 'fish' AND status = 'available' ORDER BY name ASC");
+                if ($stmt) {
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+                    while ($row = $res->fetch_assoc()) {
+                        $fishProducts[] = $row;
+                    }
+                    $stmt->close();
+                }
+            } catch (Exception $e) {
+                // ignore
+            }
+            ?>
+
+            <div id="orderFishModal" class="cf-modal" role="dialog" aria-labelledby="orderFishLabel" aria-hidden="true">
+                <div class="cf-modal-dialog">
+                    <form method="POST" action="../handlers/client_order.php">
+                        <div class="cf-modal-header">
+                            <strong id="orderFishLabel"><i class="fas fa-fish"></i> Order Fish</strong>
+                            <button type="button" class="btn btn-secondary" id="closeOrderFish">✕</button>
+                        </div>
+                        <div class="cf-modal-body">
+                            <div style="display:flex;flex-direction:column;gap:12px;">
+                                <label>Your Name *</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+
+                                <label>Phone or Email *</label>
+                                <input type="text" name="customer_contact" class="form-control" required>
+
+                                <label>Select Fish *</label>
+                                <select name="product_id" class="form-control" required>
+                                    <option value="">-- Select Fish --</option>
+                                    <?php foreach ($fishProducts as $p): ?>
+                                        <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['name']); ?> — ₱<?php echo number_format($p['price'], 2); ?> / <?php echo $p['unit']; ?> (stock: <?php echo (int)$p['stock_quantity']; ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <div style="display:flex; gap:12px;">
+                                    <div style="flex:0 0 120px;">
+                                        <label>Quantity *</label>
+                                        <input type="number" name="quantity" min="1" value="1" class="form-control" required>
+                                    </div>
+                                    <div style="flex:1;">
+                                        <label>Preferred Delivery/Pickup Date</label>
+                                        <input type="date" name="delivery_date" class="form-control">
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="cf-modal-footer" style="display:flex; justify-content:flex-end; gap:8px;">
+                            <button type="button" class="btn btn-secondary" id="cancelOrderFish">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Place Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div style="max-width: 600px; margin: 30px auto; padding: 20px; background-color: #f0f8f5; border-radius: 8px; border-left: 4px solid #52be80;">
                 <h3 style="color: #27ae60; margin-bottom: 10px;"><i class="fas fa-fish"></i> Fish Purchase</h3>
                 <p style="color: #666; margin-bottom: 10px;">
@@ -137,3 +200,38 @@ if (isset($_GET['error'])) {
 </main>
 
 <?php include 'partials/footer.php'; ?>
+
+<script>
+    // Order Fish modal show/hide logic (uses custom modal classes)
+    (function() {
+        function openModal(id) {
+            var m = document.getElementById(id);
+            if (!m) return;
+            m.classList.add('cf-open');
+        }
+
+        function closeModal(id) {
+            var m = document.getElementById(id);
+            if (!m) return;
+            m.classList.remove('cf-open');
+        }
+
+        var openBtn = document.querySelector('[data-toggle="orderModal"]');
+        if (openBtn) openBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal('orderFishModal');
+        });
+
+        document.getElementById('closeOrderFish')?.addEventListener('click', function() {
+            closeModal('orderFishModal');
+        });
+        document.getElementById('cancelOrderFish')?.addEventListener('click', function() {
+            closeModal('orderFishModal');
+        });
+
+        try {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('open_order') === '1') openModal('orderFishModal');
+        } catch (e) {}
+    })();
+</script>

@@ -21,6 +21,6 @@ if (ini_get("session.use_cookies")) {
 // Destroy the session
 session_destroy();
 
-// Redirect to login or home page
-header("Location: ../index.php?message=You have been signed out successfully");
+// Redirect to admin login page
+header("Location: ../admin_login.php?message=You have been signed out successfully");
 exit;

@@ -1,4 +1,5 @@
 <!-- [ Layout container ] Start -->
+<?php ?>
 <div class="layout-container">
     <!-- [ Layout navbar ( Header ) ] Start -->
     <nav class="layout-navbar navbar navbar-expand-lg align-items-lg-center bg-dark container-p-x" id="layout-navbar">
@@ -28,12 +29,12 @@
 
             <div class="navbar-nav align-items-lg-center">
                 <!-- Search -->
-                <label class="nav-item navbar-text navbar-search-box p-0 active">
+                <!-- <label class="nav-item navbar-text navbar-search-box p-0 active">
                     <i class="feather icon-search navbar-icon align-middle"></i>
                     <span class="navbar-search-input pl-2">
                         <input type="text" class="form-control navbar-text mx-2" placeholder="Search...">
                     </span>
-                </label>
+                </label> -->
             </div>
 
             <div class="navbar-nav align-items-lg-center ml-auto">

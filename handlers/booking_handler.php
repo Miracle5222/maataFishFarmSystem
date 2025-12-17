@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Phone number is required";
     }
 
-    if (empty($reservation_type) || !in_array($reservation_type, ['dine-in', 'farm visit', 'private-event'])) {
+    if (empty($reservation_type) || !in_array($reservation_type, ['dine-in', 'farm visit', 'private-events'])) {
         $errors[] = "Valid reservation type is required";
     }
 
