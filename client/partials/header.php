@@ -1,3 +1,25 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+$clientLoggedIn = isset($_SESSION['client_id']) && $_SESSION['client_id'];
+// Fetch latest order for logged-in user to show quick status in header
+$latest_order = null;
+if ($clientLoggedIn) {
+    @include_once __DIR__ . '/../../config/db.php';
+    if (isset($conn) && $conn) {
+        $uid = (int) ($_SESSION['client_id'] ?? 0);
+        $ost = $conn->prepare('SELECT order_number, status FROM orders WHERE customer_id = ? ORDER BY id DESC LIMIT 1');
+        if ($ost) {
+            $ost->bind_param('i', $uid);
+            $ost->execute();
+            $or = $ost->get_result();
+            if ($or && $or->num_rows) {
+                $latest_order = $or->fetch_assoc();
+            }
+            $ost->close();
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -100,7 +122,7 @@
         .btn-secondary {
             background-color: transparent;
             color: white;
-            border: 2px solid white;
+       
         }
 
         .btn-secondary:hover {
@@ -196,6 +218,7 @@
             }
         }
     </style>
+
 </head>
 
 <body>
@@ -214,59 +237,83 @@
             </nav>
             <div class="nav-buttons">
                 <a href="booking.php" class="btn btn-primary"><i class="fas fa-calendar"></i> Book</a>
-                <a href="cart.php" class="btn btn-secondary"><i class="fas fa-shopping-cart"></i> Cart</a>
+                <?php if ($clientLoggedIn): ?>
+                    <div class="user-dropdown" style="position:relative; display:inline-block;">
+                        <button id="userMenuBtn" class="btn btn-secondary" style="display:flex; align-items:center; gap:8px;">
+                            <i class="fas fa-user-circle" style="font-size:20px;"></i>
+                        </button>
+                        <div id="userMenu" style="position:absolute; right:0; top:calc(100% + 8px); background:white; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:none; min-width:220px; z-index:2000;">
+                            <a href="cart.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">🛒 Cart</a>
+                            <a href="orders.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">📋 Orders <?php if ($latest_order): ?><span style="float:right; background:#27ae60; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px;"><?php echo htmlspecialchars($latest_order['status']); ?></span><?php endif; ?></a>
+                            <a href="profile.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">👤 My Account</a>
+                            <a href="../handlers/client_logout.php" style="display:block; padding:10px 14px; color:#c00; text-decoration:none;">🚪 Logout</a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a href="cart.php" class="btn btn-secondary"><i class="fas fa-shopping-cart"></i> Cart</a>
+                    <a href="login.php" class="btn btn-secondary">Login</a>
+                <?php endif; ?>
             </div>
         </div>
     </header>
     <script>
-        function getCart() {
-            try {
-                return JSON.parse(localStorage.getItem('mf_cart') || '[]');
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveCart(c) {
-            localStorage.setItem('mf_cart', JSON.stringify(c));
-        }
+        var clientLoggedIn = <?php echo $clientLoggedIn ? 'true' : 'false'; ?>;
+        var clientId = <?php echo isset($_SESSION['client_id']) ? (int)$_SESSION['client_id'] : 'null'; ?>;
 
         function addToCart(id, name, price, unit) {
+            if (!clientLoggedIn) {
+                var next = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = 'login.php?next=' + next;
+                return;
+            }
             try {
                 var qtyEl = document.getElementById('qty_' + id);
-                var qty = 1;
-                if (qtyEl) {
-                    qty = parseInt(qtyEl.value) || 1;
-                }
-                var cart = getCart();
-                var found = false;
-                for (var i = 0; i < cart.length; i++) {
-                    if (Number(cart[i].id) === Number(id)) {
-                        cart[i].qty = Number(cart[i].qty) + qty;
-                        found = true;
-                        break;
+                var qty = parseInt(qtyEl ? qtyEl.value : 1) || 1;
+                
+                // Add to database cart via AJAX
+                var formData = new FormData();
+                formData.append('action', 'add');
+                formData.append('product_id', id);
+                formData.append('quantity', qty);
+                
+                fetch('../handlers/client_cart_api.php', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                })
+                .then(function(res) { 
+                    if (!res.ok) {
+                        console.error('Response status:', res.status);
+                        return res.text().then(function(text) {
+                            console.error('Response body:', text);
+                            throw new Error('HTTP ' + res.status);
+                        });
                     }
-                }
-                if (!found) {
-                    cart.push({
-                        id: Number(id),
-                        name: name,
-                        price: Number(price),
-                        unit: unit,
-                        qty: qty
-                    });
-                }
-                saveCart(cart);
-                try {
-                    if (window.toastr) {
-                        toastr.success('Added to cart');
+                    return res.json(); 
+                })
+                .then(function(data) {
+                    console.log('Cart API response:', data);
+                    if (data.success) {
+                        try { if (window.toastr) toastr.success('Added to cart'); else alert('Added to cart'); } catch (e) {}
                     } else {
-                        alert('Added to cart');
+                        var errMsg = data.error || 'Failed to add';
+                        if (data.debug) errMsg += ' (' + JSON.stringify(data.debug) + ')';
+                        alert('Error: ' + errMsg);
                     }
-                } catch (e) {}
-            } catch (e) {
-                console.error('addToCart error', e);
-                alert('Unable to add to cart');
-            }
+                })
+                .catch(function(e) { 
+                    console.error('addToCart error:', e); 
+                    alert('Unable to add to cart: ' + e.message); 
+                });
+            } catch (e) { console.error('addToCart error', e); alert('Unable to add to cart: ' + e.message); }
         }
+
+        // user menu toggle
+        (function(){
+            var btn = document.getElementById('userMenuBtn');
+            var menu = document.getElementById('userMenu');
+            if (!btn || !menu) return;
+            btn.addEventListener('click', function(e){ e.stopPropagation(); menu.style.display = (menu.style.display === 'block') ? 'none' : 'block'; });
+            document.addEventListener('click', function(){ if(menu.style.display === 'block') menu.style.display = 'none'; });
+        })();
     </script>

@@ -85,7 +85,7 @@
 
             </div>
 
-            <!-- Contact Form -->
+            <!-- Contact Form
             <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
                 <h2 style="color: #27ae60; margin-bottom: 10px; text-align: center;"><i class="fas fa-envelope"></i> Send us a Message</h2>
                 <p style="color: #666; text-align: center; margin-bottom: 25px;">We'll respond as soon as possible</p>
@@ -129,7 +129,7 @@
                     </button>
 
                 </form>
-            </div>
+            </div> -->
 
             <!-- Alternative Contact Methods -->
             <div style="max-width: 700px; margin: 50px auto 0; padding: 25px; background: #f0f8f5; border-radius: 8px; border-top: 3px solid #27ae60; text-align: center;">

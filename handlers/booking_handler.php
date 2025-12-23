@@ -66,6 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result->num_rows > 0) {
             $customer = $result->fetch_assoc();
             $customer_id = $customer['id'];
+            // mark as diner since they made a reservation
+            try {
+                $ctype = 'diner';
+                $upc = $conn->prepare('UPDATE customers SET customer_type = ?, updated_at = NOW() WHERE id = ?');
+                if ($upc) {
+                    $upc->bind_param('si', $ctype, $customer_id);
+                    $upc->execute();
+                    $upc->close();
+                }
+            } catch (Exception $e) {
+                error_log('[booking_handler] Failed to set customer_type: ' . $e->getMessage());
+            }
         } else {
             // Extract first and last name from full name
             $name_parts = explode(' ', $name, 2);
@@ -87,6 +99,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $customer_id = $conn->insert_id;
+            // set new customer to diner (made reservation)
+            try {
+                $ctype = 'diner';
+                $upc = $conn->prepare('UPDATE customers SET customer_type = ?, updated_at = NOW() WHERE id = ?');
+                if ($upc) {
+                    $upc->bind_param('si', $ctype, $customer_id);
+                    $upc->execute();
+                    $upc->close();
+                }
+            } catch (Exception $e) {
+                error_log('[booking_handler] Failed to set customer_type for new customer: ' . $e->getMessage());
+            }
         }
 
         // Generate unique reservation number

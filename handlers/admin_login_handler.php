@@ -12,7 +12,7 @@ if ($username === '' || $password === '') {
 }
 
 // Find user by username or email
-$query = "SELECT id, username, full_name, role, password FROM users WHERE (username = ? OR email = ?) AND status = 'active' LIMIT 1";
+$query = "SELECT id, username, full_name, email,status,created_at,role, password FROM users WHERE (username = ? OR email = ?) AND status = 'active' LIMIT 1";
 $stmt = $conn->prepare($query);
 if (!$stmt) {
     header('Location: ../admin_login.php?error=' . urlencode('Database error'));
@@ -47,9 +47,11 @@ if ($res && $row = $res->fetch_assoc()) {
         // Login success
         $_SESSION['user_id'] = $row['id'];
         $_SESSION['username'] = $row['username'];
+         $_SESSION['email'] = $row['email'];
         $_SESSION['full_name'] = $row['full_name'];
         $_SESSION['role'] = $row['role'];
-
+      $_SESSION['status'] = $row['status'];
+            $_SESSION['created_at'] = $row['created_at'];
         header('Location: ../index.php');
         exit;
     }

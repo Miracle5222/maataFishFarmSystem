@@ -1,0 +1,16 @@
+ https://github.com/settings/applications
+
+ 4. Manual Sign Out Method:
+Step 1: Revoke Access on GitHub:
+
+Go to: https://github.com/settings/applications
+
+Find "Visual Studio Code" or "GitHub Copilot"
+
+Click "Revoke" or "Uninstall"
+
+Step 2: Clear VS Code Data:
+
+Close VS Code completely
+
+Delete these folders:

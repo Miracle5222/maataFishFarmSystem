@@ -54,12 +54,9 @@
             <h2 style="text-align: center; margin-bottom: 24px; color: #27ae60; font-size: 28px;">Fresh Fish — Available for Order</h2>
 
             <?php
-            // load fish products from DB (also try to get main image from product_images)
+            // load fish species from fish_species table
             $fish = [];
-            $stmt = $conn->prepare("SELECT p.id, p.name, p.description, p.price, p.unit, p.stock_quantity,
-                (SELECT filename FROM product_images pi WHERE pi.product_id = p.id AND pi.is_main = 1 LIMIT 1) AS image
-                FROM products p
-                WHERE p.category = 'fish' AND p.status = 'available' ORDER BY p.name ASC");
+            $stmt = $conn->prepare("SELECT fish_id, name, description, price_per_kg AS price, 'kg' AS unit, stock AS stock_quantity, image FROM fish_species WHERE status = 'available' ORDER BY name ASC");
             if ($stmt) {
                 $stmt->execute();
                 $res = $stmt->get_result();
@@ -71,16 +68,16 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
                 <?php foreach ($fish as $p): ?>
                     <div class="card" style="overflow:hidden;">
-                        <?php $img = !empty($p['image']) ? '../assets/img/products/' . $p['image'] : '../assets/img/fish-placeholder.png'; ?>
+                        <?php $img = !empty($p['image']) ? '../assets/img/fish_species/' . $p['image'] : '../assets/img/fish-placeholder.png'; ?>
                         <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo htmlspecialchars($p['name']); ?>" style="width:100%; height:180px; object-fit:cover;" onerror="this.src='../assets/img/fish-placeholder.png'">
                         <div class="card-body">
                             <h5 class="card-title"><?php echo htmlspecialchars($p['name']); ?></h5>
                             <p class="card-text text-muted" style="min-height:44px"><?php echo htmlspecialchars(substr($p['description'] ?? '', 0, 100)); ?></p>
                             <p class="font-weight-bold" style="color:#27ae60">₱<?php echo number_format($p['price'], 2); ?> / <?php echo $p['unit']; ?></p>
                             <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-                                <input type="number" min="1" value="1" id="qty_<?php echo $p['id']; ?>" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;" max="<?php echo (int)$p['stock_quantity']; ?>">
+                                <input type="number" min="1" value="1" id="qty_<?php echo $p['fish_id']; ?>" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;" max="<?php echo (int)$p['stock_quantity']; ?>">
                                 <?php if ((int)$p['stock_quantity'] > 0): ?>
-                                    <button class="btn btn-success btn-sm" onclick="addToCart(<?php echo $p['id']; ?>,'<?php echo htmlspecialchars(addslashes($p['name'])); ?>',<?php echo $p['price']; ?>,'<?php echo $p['unit']; ?>')"><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                                    <button class="btn btn-success btn-sm" onclick="addToCart(<?php echo $p['fish_id']; ?>,'<?php echo htmlspecialchars(addslashes($p['name'])); ?>',<?php echo $p['price']; ?>,'kg')"><i class="fas fa-cart-plus"></i> Add to Cart</button>
                                 <?php else: ?>
                                     <button class="btn btn-secondary btn-sm" disabled>Out of stock</button>
                                 <?php endif; ?>

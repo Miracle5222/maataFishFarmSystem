@@ -44,6 +44,37 @@
     <!-- Demo -->
     <script src="assets/js/demo.js"></script><script src="assets/js/analytics.js"></script>
     <script src="assets/js/pages/dashboards_index.js"></script>
-</body>
-
-</html>
+    
+    <!-- Fix for navbar dropdown clicks -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure dropdown toggles work
+        var dropdownToggles = document.querySelectorAll('[data-toggle="dropdown"]');
+        dropdownToggles.forEach(function(toggle) {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                // Get the dropdown menu
+                var menu = this.nextElementSibling;
+                if (menu && menu.classList.contains('dropdown-menu')) {
+                    menu.classList.toggle('show');
+                    this.setAttribute('aria-expanded', menu.classList.contains('show'));
+                }
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            dropdownToggles.forEach(function(toggle) {
+                var menu = toggle.nextElementSibling;
+                if (menu && menu.classList.contains('dropdown-menu')) {
+                    if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+                        menu.classList.remove('show');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+        });
+    });
+    </script>

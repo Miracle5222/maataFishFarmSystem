@@ -55,23 +55,23 @@ if (!$customer_id) {
     exit;
 }
 
-// Get product info
-$stmt = $conn->prepare('SELECT id, name, price, unit, stock_quantity FROM products WHERE id = ? AND category = "fish" AND status = "available" LIMIT 1');
+// Get fish info from fish_species table
+$stmt = $conn->prepare('SELECT fish_id, name, price_per_kg, stock FROM fish_species WHERE fish_id = ? AND status = "available" LIMIT 1');
 if (!$stmt) {
-    header('Location: ../client/booking.php?error=Product not found');
+    header('Location: ../client/booking.php?error=Fish not found');
     exit;
 }
 $stmt->bind_param('i', $product_id);
 $stmt->execute();
 $res = $stmt->get_result();
 if (!$res || $res->num_rows === 0) {
-    header('Location: ../client/booking.php?error=Product not available');
+    header('Location: ../client/booking.php?error=Fish not available');
     exit;
 }
-$product = $res->fetch_assoc();
+$fish = $res->fetch_assoc();
 $stmt->close();
 
-$unit_price = (float) $product['price'];
+$unit_price = (float) $fish['price_per_kg'];
 $subtotal = $unit_price * $quantity;
 $total = $subtotal;
 
@@ -103,8 +103,8 @@ if ($insItem) {
     $insItem->close();
 }
 
-// Decrease product stock if unit is kg or pcs
-$updateStock = $conn->prepare('UPDATE products SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?');
+// Decrease fish stock
+$updateStock = $conn->prepare('UPDATE fish_species SET stock = GREATEST(stock - ?, 0) WHERE id = ?');
 if ($updateStock) {
     $updateStock->bind_param('ii', $quantity, $product_id);
     $updateStock->execute();

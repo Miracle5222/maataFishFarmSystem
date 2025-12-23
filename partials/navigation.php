@@ -29,11 +29,13 @@
             <li class="sidenav-item"><a href="orders_view.php" class="sidenav-link">
                     <div>View Orders</div>
                 </a></li>
-            <li class="sidenav-item"><a href="orders_history.php" class="sidenav-link">
-                    <div>Historical Orders</div>
+         
+         
+            <li class="sidenav-item"><a href="admin_menu_order.php" class="sidenav-link">
+                    <div>Menu Order</div>
                 </a></li>
-            <li class="sidenav-item"><a href="orders_create.php" class="sidenav-link">
-                    <div>Create Order</div>
+            <li class="sidenav-item"><a href="menu_orders_view.php" class="sidenav-link">
+                    <div>View Menu Orders</div>
                 </a></li>
         </ul>
     </li>
@@ -75,14 +77,14 @@
     <li class="sidenav-item">
         <a href="javascript:" class="sidenav-link sidenav-toggle">
             <i class="sidenav-icon feather icon-users"></i>
-            <div>Staff</div>
+            <div>Manage Employee</div>
         </a>
         <ul class="sidenav-menu">
             <li class="sidenav-item"><a href="staff_list.php" class="sidenav-link">
-                    <div>Staff List</div>
+                    <div>Employee List</div>
                 </a></li>
             <li class="sidenav-item"><a href="staff_add.php" class="sidenav-link">
-                    <div>Add Staff</div>
+                    <div>Add Employee</div>
                 </a></li>
         </ul>
     </li>
@@ -97,9 +99,7 @@
             <li class="sidenav-item"><a href="calendar_month.php" class="sidenav-link">
                     <div>Monthly View</div>
                 </a></li>
-            <li class="sidenav-item"><a href="calendar_bookings.php" class="sidenav-link">
-                    <div>Bookings</div>
-                </a></li>
+           
         </ul>
     </li>
 
@@ -129,12 +129,8 @@
             <li class="sidenav-item"><a href="customers_list.php" class="sidenav-link">
                     <div>Customer List</div>
                 </a></li>
-            <li class="sidenav-item"><a href="customers_add.php" class="sidenav-link">
-                    <div>Add Customer</div>
-                </a></li>
-            <li class="sidenav-item"><a href="customers_profile.php" class="sidenav-link">
-                    <div>Customer Profiles</div>
-                </a></li>
+          
+      
         </ul>
     </li>
 
@@ -145,29 +141,34 @@
             <div>Products</div>
         </a>
         <ul class="sidenav-menu">
+            <!-- Fish group -->
             <li class="sidenav-item"><a href="products_fish.php" class="sidenav-link">
-                    <div>Fish Species</div>
+                    <div>View Fish Species</div>
                 </a></li>
+         
+
+            <!-- Menu / Food group -->
             <li class="sidenav-item"><a href="products_menu.php" class="sidenav-link">
-                    <div>Menu Items</div>
+                    <div>View Menu</div>
                 </a></li>
-            <li class="sidenav-item"><a href="products_list.php" class="sidenav-link">
-                    <div>All Products</div>
+            <li class="sidenav-item"><a href="products_add.php?category=food" class="sidenav-link">
+                    <div>Add Menu Item</div>
                 </a></li>
-            <li class="sidenav-item"><a href="products_add.php" class="sidenav-link">
-                    <div>Add Product</div>
+   <li class="sidenav-item"><a href="products_add.php?category=fish" class="sidenav-link">
+                    <div>Add Fish</div>
                 </a></li>
-            <li class="sidenav-item"><a href="inventory_manage.php" class="sidenav-link">
+            <!-- Inventory -->
+            <!-- <li class="sidenav-item"><a href="inventory_manage.php" class="sidenav-link">
                     <div>Manage Inventory</div>
-                </a></li>
+                </a></li> -->
         </ul>
     </li>
 
     <li class="sidenav-divider mb-1"></li>
 
-    <li class="sidenav-header small font-weight-semibold">Tools</li>
+    <!-- <li class="sidenav-header small font-weight-semibold">Tools</li>
     <li class="sidenav-item">
-        <a href="user_profile.php" class="sidenav-link">
+        <a href="admin_profile.php" class="sidenav-link">
             <i class="sidenav-icon feather icon-user"></i>
             <div>My Profile</div>
         </a>
@@ -177,6 +178,6 @@
             <i class="sidenav-icon feather icon-settings"></i>
             <div>Settings</div>
         </a>
-    </li>
+    </li> -->
 
 </ul>

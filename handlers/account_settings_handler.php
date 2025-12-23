@@ -3,6 +3,36 @@ session_start();
 include '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Check if this is customer profile update from admin
+        if (isset($_POST['customer_id'])) {
+            // Admin customer profile update
+            $customer_id = (int)$_POST['customer_id'];
+            $first_name = trim($_POST['first_name'] ?? '');
+            $last_name = trim($_POST['last_name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $phone = trim($_POST['phone'] ?? '');
+            $address = trim($_POST['address'] ?? '');
+            $barangay = trim($_POST['barangay'] ?? '');
+            $municipality = trim($_POST['municipality'] ?? '');
+            $customer_type = trim($_POST['customer_type'] ?? 'online_customer');
+        
+            if ($first_name === '' || $last_name === '') {
+                header('Location: ../customers_profile.php?id=' . $customer_id . '&error=First and last name are required');
+                exit;
+            }
+        
+            $stmt = $conn->prepare('UPDATE customers SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ?, barangay = ?, municipality = ?, customer_type = ?, updated_at = NOW() WHERE id = ?');
+            $stmt->bind_param('ssssssssi', $first_name, $last_name, $email, $phone, $address, $barangay, $municipality, $customer_type, $customer_id);
+        
+            if ($stmt->execute()) {
+                $stmt->close();
+                header('Location: ../customers_list.php?success=Customer updated successfully');
+            } else {
+                $stmt->close();
+                header('Location: ../customers_profile.php?id=' . $customer_id . '&error=Failed to update customer');
+            }
+            exit;
+        }
     $user_id = $_SESSION['user_id'] ?? 1; // Use session user_id when available
 
     // Collect notification preferences

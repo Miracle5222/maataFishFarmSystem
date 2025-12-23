@@ -81,6 +81,64 @@
         a:hover {
             color: #229954;
         }
+        
+        /* Ensure navbar dropdowns are clickable */
+        .layout-navbar {
+            position: relative;
+            z-index: 1030 !important;
+            overflow: visible !important;
+        }
+        
+        .layout-navbar .navbar-nav {
+            overflow: visible !important;
+        }
+        
+        .layout-navbar .dropdown {
+            position: relative;
+            overflow: visible !important;
+        }
+        
+        .dropdown-menu {
+            z-index: 1040 !important;
+            position: absolute !important;
+            pointer-events: auto !important;
+        }
+        
+        .navbar-nav .dropdown-menu {
+            z-index: 1040 !important;
+            position: absolute !important;
+            pointer-events: auto !important;
+        }
+        
+        .dropdown-menu.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        
+        .dropdown-menu a {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        }
+        
+        /* Ensure modals don't block navbar */
+        .modal {
+            z-index: 1050 !important;
+        }
+        
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        
+        .modal-backdrop.show {
+            display: none !important;
+        }
+        
+        /* Remove any overflow hidden from navbar collapse */
+        .navbar-collapse {
+            overflow: visible !important;
+        }
     </style>
 
 </head>
