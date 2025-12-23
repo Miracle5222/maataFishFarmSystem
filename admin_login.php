@@ -19,7 +19,7 @@ include 'partials/head.php';
                     <div class="alert alert-danger small font-weight-bold text-dark mb-3"><?php echo htmlspecialchars($_GET['error']); ?></div>
                 <?php endif; ?>
                 <?php if (!empty($_GET['message'])): ?>
-                    <div class="alert alert-success small mb-3"><?php echo htmlspecialchars($_GET['message']); ?></div>
+                    <div class="alert alert-success small text-primary mb-3"><?php echo htmlspecialchars($_GET['message']); ?></div>
                 <?php endif; ?>
 
                 <form method="post" action="handlers/admin_login_handler.php" novalidate>
@@ -58,3 +58,23 @@ include 'partials/head.php';
 </div>
 
 <?php include 'partials/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const alerts = document.querySelectorAll('.alert');
+    if(!alerts.length) return;
+    // Auto-hide non-persistent alerts after 5 seconds
+    setTimeout(function(){
+        alerts.forEach(function(a){
+            try {
+                a.style.transition = 'opacity 0.35s ease';
+                a.style.opacity = '0';
+                setTimeout(function(){
+                    if (a.parentNode) a.parentNode.removeChild(a);
+                }, 400);
+            } catch (e) {
+                if (a.parentNode) a.parentNode.removeChild(a);
+            }
+        });
+    }, 5000);
+});
+</script>

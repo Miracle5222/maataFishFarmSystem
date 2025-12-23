@@ -16,10 +16,14 @@ include 'partials/head.php';
             </div>
             <div class="card-body">
                 <?php if (!empty($_GET['message'])): ?>
-                    <div class="alert alert-success small mb-3"><?php echo htmlspecialchars($_GET['message']); ?></div>
+                    <div class="alert alert-success small mb-3 text-dark" role="alert" aria-live="polite">
+                        <strong>Success:</strong> <?php echo htmlspecialchars($_GET['message']); ?>
+                    </div>
                 <?php endif; ?>
                 <?php if (!empty($_GET['error'])): ?>
-                    <div class="alert alert-danger small mb-3"><?php echo htmlspecialchars($_GET['error']); ?></div>
+                    <div class="alert alert-danger small mb-3 text-dark" role="alert" aria-live="assertive">
+                        <strong>Error:</strong> <?php echo htmlspecialchars($_GET['error']); ?>
+                    </div>
                 <?php endif; ?>
 
                 <form method="post" action="handlers/reset_password_handler.php">
@@ -40,3 +44,23 @@ include 'partials/head.php';
 </div>
 
 <?php include 'partials/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const alerts = document.querySelectorAll('.alert');
+    if(!alerts.length) return;
+    // Auto-hide non-persistent alerts after 5 seconds (fade then remove)
+    setTimeout(function(){
+        alerts.forEach(function(a){
+            try {
+                a.style.transition = 'opacity 0.35s ease';
+                a.style.opacity = '0';
+                setTimeout(function(){
+                    if (a.parentNode) a.parentNode.removeChild(a);
+                }, 400);
+            } catch (e) {
+                if (a.parentNode) a.parentNode.removeChild(a);
+            }
+        });
+    }, 5000);
+});
+</script>

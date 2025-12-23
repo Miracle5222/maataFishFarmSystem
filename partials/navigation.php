@@ -1,5 +1,12 @@
 <?php
 // Centralized navigation with dropdowns and sub-links for each main section.
+// Ensure session is available and determine user role for conditional nav items
+// Only start session here if it hasn't been started and headers have not been sent.
+// In many pages `auth_admin.php` or the caller already starts the session.
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
+$role = $_SESSION['role'] ?? '';
 ?>
 <!-- Links (centralized navigation) -->
 <ul class="sidenav-inner py-1">
@@ -9,9 +16,9 @@
         <a href="index.php" class="sidenav-link">
             <i class="sidenav-icon feather icon-home"></i>
             <div>Dashboards</div>
-            <div class="pl-1 ml-auto">
+            <!-- <div class="pl-1 ml-auto">
                 <div class="badge badge-danger">Hot</div>
-            </div>
+            </div> -->
         </a>
     </li>
 
@@ -57,7 +64,8 @@
         </ul>
     </li>
 
-    <!-- Reports -->
+    <!-- Reports (visible to admin only) -->
+    <?php if ($role === 'admin'): ?>
     <li class="sidenav-item">
         <a href="javascript:" class="sidenav-link sidenav-toggle">
             <i class="sidenav-icon feather icon-bar-chart-2"></i>
@@ -67,13 +75,15 @@
             <li class="sidenav-item"><a href="reports_sales.php" class="sidenav-link">
                     <div>Sales Report</div>
                 </a></li>
-            <li class="sidenav-item"><a href="reports_revenue.php" class="sidenav-link">
+            <!-- <li class="sidenav-item"><a href="reports_revenue.php" class="sidenav-link">
                     <div>Revenue Report</div>
-                </a></li>
+                </a></li> -->
         </ul>
     </li>
+    <?php endif; ?>
 
-    <!-- Staff -->
+    <!-- Staff (visible to admin only) -->
+    <?php if ($role === 'admin'): ?>
     <li class="sidenav-item">
         <a href="javascript:" class="sidenav-link sidenav-toggle">
             <i class="sidenav-icon feather icon-users"></i>
@@ -88,6 +98,7 @@
                 </a></li>
         </ul>
     </li>
+    <?php endif; ?>
 
     <!-- Calendar -->
     <li class="sidenav-item">
