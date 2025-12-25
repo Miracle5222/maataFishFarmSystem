@@ -36,9 +36,9 @@ include 'partials/head.php';
         </form>
 
         <?php if (isset($_GET['success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="feather icon-check-circle"></i> Reservation status updated successfully
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <div class="alert alert-success text-primary alert-dismissible fade show" role="alert">
+                <i class="feather text-primary icon-check-circle"></i> Reservation status updated successfully
+                <button type="button" class="close text-primary" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
