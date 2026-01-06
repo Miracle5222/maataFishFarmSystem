@@ -32,6 +32,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS customers (
     address TEXT,
     barangay VARCHAR(100),
     municipality VARCHAR(100),
+    customer_type VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     password VARCHAR(45)
@@ -56,7 +57,7 @@ $pw_hash = sha1($pw);
 $ins = $conn->prepare('INSERT INTO customers (first_name, last_name, email, phone, address, barangay, municipality, customer_type, created_at, updated_at, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)');
 $ins->bind_param('sssssssss', $first, $last, $email, $phone, $address, $barangay, $municipality, $customer_type, $pw_hash);
 $ok = $ins->execute();
-$insert_id = $ins->insert_id;
+$insert_id = $conn->insert_id;
 $ins->close();
 if (!$ok || !$insert_id) {
     header('Location: ../client/register.php?error=Failed to create account');
