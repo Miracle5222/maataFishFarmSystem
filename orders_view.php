@@ -178,13 +178,31 @@
 <script>
 $(function() {
     // Initialize DataTable
+    // Ensure DataTables column definition matches the number of THs to avoid tn/18 errors
+    var headerCount = $('#ordersTable thead th').length;
+    var $firstRow = $('#ordersTable tbody tr:first-child');
+    var firstRowTds = $firstRow.length ? $firstRow.children('td').length : 0;
+    // If first row is a single placeholder cell with colspan equal to headers, remove it so DataTables can initialize
+    if ($firstRow.length && firstRowTds === 1) {
+        var colspan = parseInt($firstRow.children('td').attr('colspan') || 0, 10);
+        if (colspan === headerCount) {
+            $firstRow.remove();
+            firstRowTds = 0;
+        }
+    }
+
+    if (headerCount !== 0 && firstRowTds !== 0 && headerCount !== firstRowTds) {
+        console.warn('DataTables init: headerCount=', headerCount, ' firstRowCount=', firstRowTds);
+    }
+
+    var columnsArr = [];
+    for (var i = 0; i < headerCount; i++) columnsArr.push(null);
+
     var table = $('#ordersTable').DataTable({
         order: [[0, 'desc']],
         pageLength: 10,
-        columnDefs: [{
-            orderable: false,
-            targets: 8 // Actions column
-        }]
+        columns: columnsArr,
+        columnDefs: [{ orderable: false, targets: 8 }]
     });
 
     var currentOrderId = null;

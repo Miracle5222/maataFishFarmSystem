@@ -75,6 +75,9 @@ $role = $_SESSION['role'] ?? '';
             <li class="sidenav-item"><a href="reports_sales.php" class="sidenav-link">
                     <div>Sales Report</div>
                 </a></li>
+            <li class="sidenav-item"><a href="reports_expenses.php" class="sidenav-link">
+                    <div>View Expenses</div>
+                </a></li>
             <!-- <li class="sidenav-item"><a href="reports_revenue.php" class="sidenav-link">
                     <div>Revenue Report</div>
                 </a></li> -->
@@ -174,6 +177,15 @@ $role = $_SESSION['role'] ?? '';
                 </a></li> -->
         </ul>
     </li>
+    <!-- Expenses (visible to staff, manager, admin) -->
+    <?php if (!empty($role)): ?>
+    <li class="sidenav-item">
+        <a href="expenses.php" class="sidenav-link">
+            <i class="sidenav-icon feather icon-file-text"></i>
+            <div>Expenses</div>
+        </a>
+    </li>
+    <?php endif; ?>
 
     <li class="sidenav-divider mb-1"></li>
 

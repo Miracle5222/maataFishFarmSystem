@@ -57,9 +57,9 @@ if (isset($_GET['error'])) {
                         <select id="reservation_type" name="reservation_type" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
                             <option value="">-- Select Reservation Type --</option>
                             <option value="dine-in">Dine-In</option>
-                            <option value="farm visit">Farm Visit</option>
+                            <option value="farm-visit">Farm Visit</option>
                             <option value="private-events">Private Event</option>
-
+                            <option value="cottage">Cottage</option>
                         </select>
                     </div>
 

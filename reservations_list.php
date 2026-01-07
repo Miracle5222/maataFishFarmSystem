@@ -3,6 +3,8 @@ include 'config/db.php';
 include 'auth_admin.php';
 include 'partials/head.php';
 ?>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
 
@@ -18,22 +20,6 @@ include 'partials/head.php';
                 <li class="breadcrumb-item active">Reservations</li>
             </ol>
         </div>
-
-        <!-- Filter / Search form -->
-        <form method="get" class="form-inline mb-3">
-            <input type="text" name="q" class="form-control form-control-sm mr-2" placeholder="Search reservation #, name or email" value="<?php echo htmlspecialchars($_GET['q'] ?? ''); ?>">
-            <select name="status" class="form-control form-control-sm mr-2">
-                <option value="">All statuses</option>
-                <option value="pending" <?php if (($_GET['status'] ?? '') === 'pending') echo 'selected'; ?>>Pending</option>
-                <option value="confirmed" <?php if (($_GET['status'] ?? '') === 'confirmed') echo 'selected'; ?>>Confirmed</option>
-                <option value="completed" <?php if (($_GET['status'] ?? '') === 'completed') echo 'selected'; ?>>Completed</option>
-                <option value="cancelled" <?php if (($_GET['status'] ?? '') === 'cancelled') echo 'selected'; ?>>Cancelled</option>
-            </select>
-            <input type="date" name="from" class="form-control form-control-sm mr-2" value="<?php echo htmlspecialchars($_GET['from'] ?? ''); ?>">
-            <input type="date" name="to" class="form-control form-control-sm mr-2" value="<?php echo htmlspecialchars($_GET['to'] ?? ''); ?>">
-            <button class="btn btn-primary btn-sm" type="submit">Filter</button>
-            <a href="reservations_list.php" class="btn btn-secondary btn-sm ml-2">Reset</a>
-        </form>
 
         <?php if (isset($_GET['success'])): ?>
             <div class="alert alert-success text-primary alert-dismissible fade show" role="alert">
@@ -54,7 +40,7 @@ include 'partials/head.php';
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="reservationsTable">
                     <thead class="thead-light">
                         <tr>
                             <th>Reservation #</th>
@@ -70,41 +56,11 @@ include 'partials/head.php';
                     </thead>
                     <tbody>
                         <?php
-                        // Build dynamic WHERE clause from filters
-                        $q = trim($_GET['q'] ?? '');
-                        $status_filter = trim($_GET['status'] ?? '');
-                        $from = trim($_GET['from'] ?? '');
-                        $to = trim($_GET['to'] ?? '');
-
-                        $where = [];
-                        if ($q !== '') {
-                            $q_esc = $conn->real_escape_string($q);
-                            $where[] = "(r.reservation_number LIKE '%{$q_esc}%' OR c.first_name LIKE '%{$q_esc}%' OR c.last_name LIKE '%{$q_esc}%' OR c.email LIKE '%{$q_esc}%')";
-                        }
-                        $valid_statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
-                        if ($status_filter !== '' && in_array($status_filter, $valid_statuses)) {
-                            $where[] = "r.status = '" . $conn->real_escape_string($status_filter) . "'";
-                        }
-                        if ($from !== '') {
-                            $from_esc = $conn->real_escape_string($from);
-                            $where[] = "r.reservation_date >= '" . $from_esc . "'";
-                        }
-                        if ($to !== '') {
-                            $to_esc = $conn->real_escape_string($to);
-                            $where[] = "r.reservation_date <= '" . $to_esc . "'";
-                        }
-
-                        $where_sql = '';
-                        if (!empty($where)) {
-                            $where_sql = 'WHERE ' . implode(' AND ', $where);
-                        }
-
+                        // Fetch all reservations - filtering done by DataTables
                         $query = "SELECT r.*, c.first_name, c.last_name, c.email, c.phone
                                   FROM reservations r
                                   LEFT JOIN customers c ON r.customer_id = c.id
-                                  {$where_sql}
-                                  ORDER BY r.reservation_date DESC, r.reservation_time DESC
-                                  LIMIT 100";
+                                  ORDER BY r.reservation_date DESC, r.reservation_time DESC";
 
                         $result = $conn->query($query);
 
@@ -146,11 +102,17 @@ include 'partials/head.php';
                                             <td>{$reservation['reservation_time']}</td>
                                             <td>{$status_badge}</td>
                                             <td>
-                                                <div class=\"btn-group btn-group-sm\" role=\"group\">
-                                                    <button type=\"button\" class=\"btn btn-info\" onclick=\"viewReservation('{$customer_name}', '{$reservation['contact_email']}', '{$reservation['contact_phone']}', '{$reservation['reservation_type']}', {$reservation['num_guests']}, '{$reservation['reservation_date']}', '{$reservation['reservation_time']}', '{$reservation['special_requests']}')\" data-toggle=\"modal\" data-target=\"#detailsModal\">View</button>
-                                                    <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=confirmed\" class=\"btn btn-success\" onclick=\"return confirm('Confirm this reservation?')\">Confirm</a>
-                                                    <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=completed\" class=\"btn btn-info\" onclick=\"return confirm('Mark as completed?')\">Done</a>
-                                                    <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=cancelled\" class=\"btn btn-danger\" onclick=\"return confirm('Cancel this reservation?')\">Cancel</a>
+                                                <div class=\"dropdown\">
+                                                    <button class=\"btn btn-sm btn-primary dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\">
+                                                        Actions
+                                                    </button>
+                                                    <div class=\"dropdown-menu dropdown-menu-right\">
+                                                        <button type=\"button\" class=\"dropdown-item\" onclick=\"viewReservation('{$customer_name}', '{$reservation['contact_email']}', '{$reservation['contact_phone']}', '{$reservation['reservation_type']}', {$reservation['num_guests']}, '{$reservation['reservation_date']}', '{$reservation['reservation_time']}', '{$reservation['special_requests']}')\" data-toggle=\"modal\" data-target=\"#detailsModal\"><i class=\"feather icon-eye\"></i> View</button>
+                                                        <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=confirmed\" class=\"dropdown-item\" onclick=\"return confirm('Confirm this reservation?')\"><i class=\"feather icon-check\"></i> Confirm</a>
+                                                        <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=completed\" class=\"dropdown-item\" onclick=\"return confirm('Mark as completed?')\"><i class=\"feather icon-check-circle\"></i> Done</a>
+                                                        <div class=\"dropdown-divider\"></div>
+                                                        <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=cancelled\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Cancel this reservation?')\"><i class=\"feather icon-x\"></i> Cancel</a>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr
@@ -166,14 +128,7 @@ include 'partials/head.php';
         </div>
 
     </div>
-    <!-- [ content ] End -->
-
 </div>
-<!-- [ Layout content ] End -->
-</div>
-<!-- [ Layout wrapper ] End -->
-</div>
-<!-- [ Page wrapper ] End -->
 
 <!-- View Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
@@ -195,7 +150,32 @@ include 'partials/head.php';
     </div>
 </div>
 
+<?php include 'partials/footer.php'; ?>
+
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.10.0/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.10.0/vfs_fonts.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 <script>
+    $(document).ready(function() {
+        $('#reservationsTable').DataTable({
+            pageLength: 25,
+            order: [[5, 'desc']],
+            columnDefs: [
+                {
+                    targets: 8,
+                    orderable: false,
+                    searchable: false
+                }
+            ],
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            dom: 'lfrtip'
+        });
+    });
+
     function viewReservation(name, email, phone, type, guests, date, time, requests) {
         const detailsBody = document.getElementById('detailsBody');
         detailsBody.innerHTML = `
@@ -218,5 +198,3 @@ include 'partials/head.php';
                 `;
     }
 </script>
-
-<?php include 'partials/footer.php'; ?>
