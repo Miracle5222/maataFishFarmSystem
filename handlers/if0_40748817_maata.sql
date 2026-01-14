@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 4.9.0.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Dec 23, 2025 at 05:28 AM
--- Server version: 10.4.25-MariaDB
--- PHP Version: 7.4.30
+-- Host: sql301.infinityfree.com
+-- Generation Time: Jan 13, 2026 at 11:20 AM
+-- Server version: 11.4.9-MariaDB
+-- PHP Version: 7.2.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -18,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `maata`
+-- Database: `if0_40748817_maata`
 --
 
 -- --------------------------------------------------------
@@ -38,7 +39,7 @@ CREATE TABLE `availability` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `availability`
@@ -72,7 +73,7 @@ CREATE TABLE `calendar_bookings` (
   `event_type` varchar(100) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -88,7 +89,7 @@ CREATE TABLE `carts` (
   `unit_price` decimal(10,2) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -109,15 +110,47 @@ CREATE TABLE `customers` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `password` varchar(45) DEFAULT NULL,
   `customer_type` enum('online_customer','diner') DEFAULT 'online_customer'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `customers`
 --
 
 INSERT INTO `customers` (`id`, `first_name`, `last_name`, `email`, `phone`, `address`, `barangay`, `municipality`, `created_at`, `updated_at`, `password`, `customer_type`) VALUES
-(8, 'roneil', 'bansas', 'rocasjose77@gmail.com', '09454739388', 'Purok 2, Pob. Mahayag Zamboanga del Sur', 'poblacion', 'mahayag', '2025-12-20 17:33:57', '2025-12-22 07:19:34', 'bbfb69514dcc79fe1ad2a150ae16bf3a029a173b', 'online_customer'),
-(9, 'will', 'smith', 'roneilbansas5222@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', 'poblacion', '', '2025-12-20 17:40:07', '2025-12-22 18:40:38', 'bbfb69514dcc79fe1ad2a150ae16bf3a029a173b', 'online_customer');
+(0, 'ma', 'ma', 'mama@gmail.com', '0945473921', 'Purok 2, Pob. Mahayag Zamboanga del Sur', '', '', '2026-01-04 16:25:00', '2026-01-04 16:25:00', '2032dabadb4325aa4893c30e1fa284579a2e48fd', 'online_customer');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `expenses`
+--
+
+CREATE TABLE `expenses` (
+  `id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` varchar(3) DEFAULT 'PHP',
+  `transaction_date` date NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `category` varchar(50) NOT NULL,
+  `subcategory` varchar(50) DEFAULT NULL,
+  `payment_method` enum('Cash','Card','Digital','Other') DEFAULT 'Cash',
+  `vendor` varchar(100) DEFAULT NULL,
+  `location` varchar(150) DEFAULT NULL,
+  `status` enum('Recorded','Reviewed','Categorized','Reimbursable') DEFAULT 'Recorded',
+  `receipt_available` tinyint(1) DEFAULT 0,
+  `receipt_image_path` varchar(500) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `created_by` varchar(50) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `expenses`
+--
+
+INSERT INTO `expenses` (`id`, `amount`, `currency`, `transaction_date`, `description`, `category`, `subcategory`, `payment_method`, `vendor`, `location`, `status`, `receipt_available`, `receipt_image_path`, `notes`, `created_at`, `updated_at`, `created_by`) VALUES
+(1, '500.00', 'PHP', '2026-01-08', 'kahooy', 'Operating', 'Supplies', 'Cash', 'nadf', 'purok 5', 'Recorded', 1, 'assets/img/receipts/rcpt_695e860b3a615.png', 'nuh', '2026-01-07 16:12:59', '2026-01-07 16:12:59', 'willsmith');
 
 -- --------------------------------------------------------
 
@@ -143,7 +176,7 @@ CREATE TABLE `farm_info` (
   `description` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `farm_info`
@@ -170,7 +203,7 @@ CREATE TABLE `fish_species` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `image` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `fish_species`
@@ -196,7 +229,7 @@ CREATE TABLE `inventory` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -213,7 +246,7 @@ CREATE TABLE `menu_orders` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `menu_orders`
@@ -226,7 +259,8 @@ INSERT INTO `menu_orders` (`id`, `order_number`, `admin_id`, `total_amount`, `st
 (4, 'AMENU176639236147993932', 1, '670.00', 'paid', 'Direct menu order from farm by admin. Contact: . Notes: ', '2025-12-22 08:32:41', '2025-12-22 09:05:45'),
 (5, 'AMENU176639258297047548', 1, '175.00', 'paid', 'Direct menu order from farm by admin. Contact: . Notes: ', '2025-12-22 08:36:22', '2025-12-22 08:39:46'),
 (6, 'AMENU176639334777632319', 1, '50.00', 'paid', 'Direct menu order from farm by admin. Contact: . Notes: no onions', '2025-12-22 08:49:07', '2025-12-22 08:49:07'),
-(7, 'AMENU176639343824284317', 1, '50.00', 'paid', 'no tappings', '2025-12-22 08:50:38', '2025-12-22 10:28:15');
+(7, 'AMENU176639343824284317', 1, '50.00', 'paid', 'no tappings', '2025-12-22 08:50:38', '2025-12-22 10:28:15'),
+(8, 'AMENU17667137826350075', 1, '530.00', 'paid', '', '2025-12-26 01:49:42', '2025-12-26 01:50:13');
 
 -- --------------------------------------------------------
 
@@ -243,7 +277,7 @@ CREATE TABLE `menu_order_items` (
   `unit_price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `menu_order_items`
@@ -260,7 +294,9 @@ INSERT INTO `menu_order_items` (`id`, `menu_order_id`, `item_type`, `item_id`, `
 (8, 5, 'product', 26, '2.00', '50.00', '100.00', '2025-12-22 08:36:22'),
 (9, 5, 'product', 25, '5.00', '15.00', '75.00', '2025-12-22 08:36:22'),
 (10, 6, 'product', 26, '1.00', '50.00', '50.00', '2025-12-22 08:49:07'),
-(11, 7, 'product', 26, '1.00', '50.00', '50.00', '2025-12-22 08:50:38');
+(11, 7, 'product', 26, '1.00', '50.00', '50.00', '2025-12-22 08:50:38'),
+(12, 8, 'product', 21, '2.00', '250.00', '500.00', '2025-12-26 01:49:42'),
+(13, 8, 'product', 25, '2.00', '15.00', '30.00', '2025-12-26 01:49:42');
 
 -- --------------------------------------------------------
 
@@ -279,7 +315,7 @@ CREATE TABLE `orders` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `orders`
@@ -288,7 +324,8 @@ CREATE TABLE `orders` (
 INSERT INTO `orders` (`id`, `order_number`, `customer_id`, `order_date`, `pickup_date`, `total_amount`, `status`, `notes`, `created_at`, `updated_at`) VALUES
 (7, 'ORD17663816844949657', 8, '2025-12-22 05:34:44', '2025-12-22', '1800.00', 'paid', 'Online order from website', '2025-12-22 05:34:44', '2025-12-22 09:13:48'),
 (13, 'ORD17663879739934655', 8, '2025-12-22 07:19:33', '2025-12-22', '200.00', 'paid', 'Online order from website', '2025-12-22 07:19:33', '2025-12-22 09:13:53'),
-(14, 'ORD17663940332124966', 9, '2025-12-22 09:00:33', '2025-10-22', '200.00', 'paid', 'Online order from website', '2025-12-22 09:00:33', '2025-12-22 09:00:41');
+(14, 'ORD17663940332124966', 9, '2025-12-22 09:00:33', '2025-10-22', '200.00', 'paid', 'Online order from website', '2025-12-22 09:00:33', '2025-12-22 09:00:41'),
+(15, 'ORD17667140686123498', 9, '2025-12-26 01:54:28', '2025-12-26', '400.00', 'pending', 'Online order from website', '2025-12-26 01:54:28', '2025-12-26 02:10:33');
 
 -- --------------------------------------------------------
 
@@ -303,7 +340,7 @@ CREATE TABLE `order_items` (
   `quantity` int(11) NOT NULL,
   `unit_price` decimal(10,2) NOT NULL,
   `subtotal` decimal(10,2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `order_items`
@@ -313,7 +350,8 @@ INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `quantity`, `unit_pri
 (1, 7, 7, 9, '200.00', '1800.00'),
 (2, 12, 6, 1, '200.00', '200.00'),
 (3, 13, 6, 1, '200.00', '200.00'),
-(4, 14, 6, 1, '200.00', '200.00');
+(4, 14, 6, 1, '200.00', '200.00'),
+(5, 15, 6, 1, '200.00', '200.00');
 
 -- --------------------------------------------------------
 
@@ -333,19 +371,20 @@ CREATE TABLE `products` (
   `status` enum('available','unavailable') DEFAULT 'available',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `products`
 --
 
 INSERT INTO `products` (`id`, `name`, `category`, `description`, `image`, `price`, `unit`, `stock_quantity`, `status`, `created_at`, `updated_at`) VALUES
-(21, 'Deep-Fry Hito', 'food', 'Crispy deep-fried catfish', '21_6947c3c2848f5.jpg', '250.00', 'order', 58, 'available', '2025-12-21 09:54:10', '2025-12-22 08:32:41'),
+(21, 'Deep-Fry Hito', 'food', 'Crispy deep-fried catfish', '21_6947c3c2848f5.jpg', '250.00', 'order', 56, 'available', '2025-12-21 09:54:10', '2025-12-26 01:49:42'),
 (22, 'Adobo Hito', 'food', 'Traditional Filipino adobo', '22_6947c6b333bfd.jpg', '140.00', 'order', 97, 'available', '2025-12-21 10:06:43', '2025-12-22 08:32:41'),
 (23, 'Sisig', 'food', 'Sizzling hot sisig', '23_6947c74eeb08a.jpg', '130.00', 'order', 50, 'available', '2025-12-21 10:09:18', '2025-12-21 10:09:18'),
 (24, 'French Fries', 'snack', 'Golden crispy fries', '24_6947c79fd82bc.jpg', '60.00', 'order', 150, 'available', '2025-12-21 10:10:39', '2025-12-21 10:10:39'),
-(25, 'Coke', 'drink', 'Various cold beverages', '25_6947c7db6e9d8.jpg', '15.00', 'pcs', 144, 'available', '2025-12-21 10:11:39', '2025-12-22 08:36:22'),
-(26, 'Lumpia', 'food', 'Traditional Limpua', '26_6947c831e078b.webp', '50.00', 'order', 43, 'available', '2025-12-21 10:13:05', '2025-12-22 08:50:38');
+(25, 'Coke', 'drink', 'Various cold beverages', '25_6947c7db6e9d8.jpg', '15.00', 'pcs', 142, 'available', '2025-12-21 10:11:39', '2025-12-26 01:49:42'),
+(26, 'Lumpia', 'food', 'Traditional Limpua', '26_6947c831e078b.webp', '50.00', 'order', 43, 'available', '2025-12-21 10:13:05', '2025-12-22 08:50:38'),
+(27, 'adobo', 'food', 'asdf', NULL, '200.00', 'order', 50, 'available', '2025-12-26 01:59:27', '2025-12-26 01:59:27');
 
 -- --------------------------------------------------------
 
@@ -359,7 +398,7 @@ CREATE TABLE `product_images` (
   `filename` varchar(255) NOT NULL,
   `is_main` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `product_images`
@@ -390,7 +429,7 @@ CREATE TABLE `reservations` (
   `contact_email` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `reservations`
@@ -398,9 +437,10 @@ CREATE TABLE `reservations` (
 
 INSERT INTO `reservations` (`id`, `reservation_number`, `customer_id`, `reservation_type`, `num_guests`, `reservation_date`, `reservation_time`, `special_requests`, `status`, `contact_phone`, `contact_email`, `created_at`, `updated_at`) VALUES
 (1, 'RES-20251222-2515', 9, 'dine-in', 20, '2025-12-22', '12:43:00', 'birthday', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 04:43:20', '2025-12-22 04:43:20'),
-(2, 'RES-20251222-4514', 9, 'dine-in', 30, '2025-12-22', '12:59:00', 'asdf', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 04:59:42', '2025-12-22 04:59:42'),
-(3, 'RES-20251222-7660', 9, 'private-events', 30, '2025-12-22', '13:15:00', 'adf', 'cancelled', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 05:15:26', '2025-12-22 18:43:58'),
-(4, 'RES-20251222-1312', 9, 'dine-in', 2, '2025-12-22', '13:33:00', 'dfgdfgfdgdfg', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 05:33:45', '2025-12-22 05:43:21');
+(2, 'RES-20251222-4514', 9, 'dine-in', 30, '2025-12-22', '12:59:00', 'asdf', 'cancelled', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 04:59:42', '2025-12-23 15:34:38'),
+(3, 'RES-20251222-7660', 9, 'private-events', 30, '2025-12-22', '13:15:00', 'adf', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 05:15:26', '2025-12-23 15:28:24'),
+(4, 'RES-20251222-1312', 9, 'dine-in', 2, '2025-12-22', '13:33:00', 'dfgdfgfdgdfg', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-22 05:33:45', '2025-12-22 05:43:21'),
+(5, 'RES-20251225-8997', 9, 'dine-in', 2, '2025-12-26', '21:47:00', 'birthday', 'completed', '09454739384', 'roneilbansas5222@gmail.com', '2025-12-26 01:47:18', '2026-01-13 05:39:00');
 
 -- --------------------------------------------------------
 
@@ -414,7 +454,7 @@ CREATE TABLE `reservation_items` (
   `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
   `special_notes` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -434,7 +474,7 @@ CREATE TABLE `revenue_reports` (
   `net_profit` decimal(10,2) DEFAULT 0.00,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -451,7 +491,7 @@ CREATE TABLE `sales_reports` (
   `average_order_value` decimal(10,2) DEFAULT 0.00,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -472,7 +512,7 @@ CREATE TABLE `staff` (
   `user_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `staff`
@@ -499,7 +539,7 @@ CREATE TABLE `users` (
   `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
@@ -507,7 +547,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `full_name`, `role`, `status`, `created_at`, `updated_at`) VALUES
 (1, 'admin', 'admin@gmail.com', '$2y$10$tZIZZOiSLWDWKz8BQcXg6ORfRgBTDarWddkeHtNJTySKNxGf31s0O', 'admin', 'admin', 'active', '2025-12-15 03:39:55', '2025-12-22 17:48:20'),
-(10, 'usernames', 'donghinban0928@gmail.com', '$2y$10$A0KTWFfqBw8zcwrQpIkQmehzx4jhoIdrvx5kYlbXYTKuKNRIS76te', 'roneils bansas', 'staff', 'active', '2025-12-22 18:06:44', '2025-12-22 18:08:57'),
+(10, 'usernames', 'donghinban0928@gmail.com', '14878d28c630840a7dbda61f58183f698dbac67459fa457d65412fed5a5a61ce', 'roneils bansas', 'staff', 'active', '2025-12-22 18:06:44', '2026-01-04 16:10:31'),
 (11, 'willsmith', 'will@gmail.com', '$2y$10$CkO3KhH4zLfmDKd6cTnhc.e3qYL.ZPewgarNXsNsWc8AZByjBrxJK', 'will smith', 'manager', 'active', '2025-12-22 18:11:28', '2025-12-22 18:12:05');
 
 --
@@ -547,6 +587,12 @@ ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_phone` (`phone`),
   ADD KEY `idx_email` (`email`);
+
+--
+-- Indexes for table `expenses`
+--
+ALTER TABLE `expenses`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `farm_info`
@@ -616,12 +662,6 @@ ALTER TABLE `product_images`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT for table `product_images`
---
-ALTER TABLE `product_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
 -- Indexes for table `reservations`
 --
 ALTER TABLE `reservations`
@@ -680,7 +720,13 @@ ALTER TABLE `availability`
 -- AUTO_INCREMENT for table `carts`
 --
 ALTER TABLE `carts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `expenses`
+--
+ALTER TABLE `expenses`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `fish_species`
@@ -692,37 +738,37 @@ ALTER TABLE `fish_species`
 -- AUTO_INCREMENT for table `menu_orders`
 --
 ALTER TABLE `menu_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `menu_order_items`
 --
 ALTER TABLE `menu_order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `staff`

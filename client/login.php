@@ -1,9 +1,16 @@
-<?php include 'partials/header.php'; ?>
+<?php 
+session_start();
+include 'partials/header.php'; 
+?>
 
 <main style="display:flex; align-items:center; justify-content:center; min-height:60vh; padding:24px;">
     <div style="width:100%; max-width:420px;">
         <div style="background:white; padding:24px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.08);">
             <h3 style="margin-bottom:12px; color:#233;">Sign in</h3>
+            <?php if (!empty($_SESSION['login_error'])): ?>
+                <div style="color:#c00;margin-bottom:12px"><?php echo htmlspecialchars($_SESSION['login_error']); ?></div>
+                <?php unset($_SESSION['login_error']); ?>
+            <?php endif; ?>
             <?php if (!empty($_GET['error'])): ?>
                 <div style="color:#c00;margin-bottom:12px"><?php echo htmlspecialchars($_GET['error']); ?></div>
             <?php endif; ?>

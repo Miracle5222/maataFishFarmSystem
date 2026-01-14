@@ -54,10 +54,11 @@ if (isset($_GET['error'])) {
 
                     <div>
                         <label for="reservation_type" style="display: block; font-weight: 600; margin-bottom: 8px; color: #27ae60;">Reservation Type *</label>
+                      <!-- enum('dine-in','farm visit','private-events','cottage') -->
                         <select id="reservation_type" name="reservation_type" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
                             <option value="">-- Select Reservation Type --</option>
                             <option value="dine-in">Dine-In</option>
-                            <option value="farm-visit">Farm Visit</option>
+                            <option value="farm visit">Farm Visit</option>
                             <option value="private-events">Private Event</option>
                             <option value="cottage">Cottage</option>
                         </select>

@@ -1,12 +1,28 @@
-<?php include 'partials/header.php'; ?>
+<?php 
+session_start();
+include 'partials/header.php'; 
+?>
 
 <main style="display:flex; align-items:center; justify-content:center; min-height:60vh; padding:24px;">
     <div style="width:100%; max-width:520px;">
         <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06);">
             <h3 style="margin-bottom:10px; color:#233;">Create Account</h3>
-            <?php if (!empty($_GET['error'])): ?>
-                <div style="color:#c00;margin-bottom:12px"><?php echo htmlspecialchars($_GET['error']); ?></div>
+            <?php if (!empty($_SESSION['reg_error'])): ?>
+                <div style="color:#c00;margin-bottom:12px"><?php echo htmlspecialchars($_SESSION['reg_error']); ?></div>
+                <?php unset($_SESSION['reg_error']); ?>
             <?php endif; ?>
+            <?php if (!empty($_SESSION['reg_success'])): ?>
+                <div style="color:#090; margin-bottom:12px; padding:12px; background:#e8f5e9; border-radius:6px; border-left:4px solid #4caf50;">
+                    <strong>✓ <?php echo htmlspecialchars($_SESSION['reg_success']); ?></strong>
+                    <p style="margin:8px 0 0 0; font-size:14px;">Redirecting to login page in 3 seconds...</p>
+                </div>
+                <script>
+                    setTimeout(function() {
+                        window.location.href = 'login.php';
+                    }, 3000);
+                </script>
+                <?php unset($_SESSION['reg_success']); ?>
+            <?php else: ?>
             <form method="post" action="../handlers/client_register.php">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <input type="text" name="first_name" placeholder="First name" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
@@ -39,6 +55,7 @@
                     </div>
                 </div>
             </form>
+            <?php endif; ?>
         </div>
     </div>
 </main>

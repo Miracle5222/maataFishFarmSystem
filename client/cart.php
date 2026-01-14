@@ -31,6 +31,13 @@ include 'partials/header.php';
     <div class="container">
         <h1 style="color:#27ae60; margin-bottom:20px; font-size:28px; font-weight:600;">Your Shopping Cart</h1>
 
+        <?php if (!empty($_SESSION['cart_error'])): ?>
+            <div style="background:#ffebee; color:#c00; padding:12px; border-radius:6px; margin-bottom:20px; border-left:4px solid #c00;">
+                <?php echo htmlspecialchars($_SESSION['cart_error']); ?>
+            </div>
+            <?php unset($_SESSION['cart_error']); ?>
+        <?php endif; ?>
+
         <div style="background:white; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:24px;">
             <div id="cartArea" style="min-height:120px;">
                 <!-- JS will render cart items here -->

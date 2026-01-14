@@ -1,25 +1,34 @@
 <?php
 // handlers/client_login.php
-session_start();
-require __DIR__ . '/../config/db.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
+session_start();
+
+// Block direct access - handle GET requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../client/login.php?error=Invalid request');
+    http_response_code(405);
     exit;
 }
+
+require __DIR__ . '/../config/db.php';
+
 $identifier = trim($_POST['identifier'] ?? '');
 $pw = $_POST['password'] ?? '';
 $next = trim($_POST['next'] ?? 'index.php');
 
 if ($identifier === '' || $pw === '') {
-    header('Location: ../client/login.php?error=Missing credentials');
+    $_SESSION['login_error'] = 'Missing credentials';
+    header('Location: ../client/login.php');
     exit;
 }
 
 // Authenticate against `customers` table (password stored as SHA1)
 $stmt = $conn->prepare('SELECT id AS customer_id, password, first_name, last_name FROM customers WHERE email = ? OR phone = ? LIMIT 1');
 if (!$stmt) {
-    header('Location: ../client/login.php?error=Login error');
+    $_SESSION['login_error'] = 'Login error - please try again';
+    header('Location: ../client/login.php');
     exit;
 }
 $stmt->bind_param('ss', $identifier, $identifier);
@@ -29,7 +38,8 @@ $user = $res ? $res->fetch_assoc() : null;
 $stmt->close();
 
 if (!$user || sha1($pw) !== ($user['password'] ?? '')) {
-    header('Location: ../client/login.php?error=Invalid credentials');
+    $_SESSION['login_error'] = 'Invalid credentials';
+    header('Location: ../client/login.php');
     exit;
 }
 

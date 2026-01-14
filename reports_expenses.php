@@ -14,6 +14,12 @@
 
         <?php
         require __DIR__ . '/config/db.php';
+        
+        // Check database connection
+        if (!$conn) {
+            echo '<div class="alert alert-danger">Database connection failed</div>';
+            exit;
+        }
         ?>
 
         <div class="card">
@@ -43,30 +49,41 @@
                         <tbody>
                         <?php
                         $q = $conn->prepare('SELECT id, amount, currency, transaction_date, category, subcategory, payment_method, vendor, location, status, receipt_available, receipt_image_path, notes, created_by FROM expenses ORDER BY id DESC');
-                        if ($q) {
-                            $q->execute();
-                            $res = $q->get_result();
-                            while ($r = $res->fetch_assoc()) {
-                                echo '<tr>';
-                                echo '<td>' . htmlspecialchars($r['id']) . '</td>';
-                                echo '<td>' . number_format($r['amount'],2) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['currency']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['transaction_date']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['category']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['subcategory']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['payment_method']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['vendor']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['location']) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['status']) . '</td>';
-                                if (!empty($r['receipt_image_path'])) {
-                                    echo '<td><a href="' . htmlspecialchars($r['receipt_image_path']) . '" target="_blank">View</a></td>';
+                        
+                        if (!$q) {
+                            echo '<tr><td colspan="13" class="alert alert-danger">Query error: ' . htmlspecialchars($conn->error) . '</td></tr>';
+                        } else {
+                            if (!$q->execute()) {
+                                echo '<tr><td colspan="13" class="alert alert-danger">Execute error: ' . htmlspecialchars($q->error) . '</td></tr>';
+                            } else {
+                                $res = $q->get_result();
+                                if ($res && $res->num_rows > 0) {
+                                    while ($r = $res->fetch_assoc()) {
+                                        echo '<tr>';
+                                        echo '<td>' . htmlspecialchars($r['id'] ?? '') . '</td>';
+                                        echo '<td>' . number_format((float)($r['amount'] ?? 0), 2) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['currency'] ?? 'PHP') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['transaction_date'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['category'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['subcategory'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['payment_method'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['vendor'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['location'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['status'] ?? '') . '</td>';
+                                        if (!empty($r['receipt_image_path'])) {
+                                            echo '<td><a href="' . htmlspecialchars($r['receipt_image_path']) . '" target="_blank">View</a></td>';
+                                        } else {
+                                            echo '<td>' . ($r['receipt_available'] ? 'Yes' : 'No') . '</td>';
+                                        }
+                                        echo '<td>' . htmlspecialchars(substr($r['notes'] ?? '', 0, 80)) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['created_by'] ?? '') . '</td>';
+                                        echo '</tr>';
+                                    }
                                 } else {
-                                    echo '<td>' . ($r['receipt_available'] ? 'Yes' : 'No') . '</td>';
+                                    echo '<tr><td colspan="13" class="text-center text-muted py-3">No expenses found</td></tr>';
                                 }
-                                echo '<td>' . htmlspecialchars(substr($r['notes'],0,80)) . '</td>';
-                                echo '<td>' . htmlspecialchars($r['created_by']) . '</td>';
-                                echo '</tr>';
                             }
+                            $q->close();
                         }
                         ?>
                         </tbody>

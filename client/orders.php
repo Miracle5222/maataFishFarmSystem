@@ -14,6 +14,13 @@ include 'partials/header.php';
     <div class="container">
         <h1 style="color:#27ae60; margin-bottom:20px; font-size:28px; font-weight:600;">My Orders</h1>
 
+        <?php if (!empty($_SESSION['cart_success'])): ?>
+            <div style="background:#e8f5e9; color:#090; padding:12px; border-radius:6px; margin-bottom:20px; border-left:4px solid #4caf50;">
+                ✓ <?php echo htmlspecialchars($_SESSION['cart_success']); ?>
+            </div>
+            <?php unset($_SESSION['cart_success']); ?>
+        <?php endif; ?>
+
         <div style="background:white; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
             <?php
             $stmt = $conn->prepare('SELECT id, order_number, order_date, pickup_date, total_amount, status FROM orders WHERE customer_id = ? ORDER BY id DESC');

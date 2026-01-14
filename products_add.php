@@ -1,9 +1,35 @@
 <?php
-include 'auth_admin.php';
+// Add error handling
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Start output buffering - capture all output
+if (ob_get_level() == 0) ob_start();
+
+try {
+    include 'auth_admin.php';
+} catch (Exception $e) {
+    ob_end_clean();
+    die('<div class="alert alert-danger">Authentication error: ' . htmlspecialchars($e->getMessage()) . '</div>');
+}
+
+// Load database config early for all requests
+try {
+    require __DIR__ . '/config/db.php';
+} catch (Exception $e) {
+    ob_end_clean();
+    die('<div class="alert alert-danger">Database connection error</div>');
+}
+
+// Check database connection
+if (!isset($conn) || !$conn) {
+    ob_end_clean();
+    die('<div class="alert alert-danger">Database connection failed</div>');
+}
+
 // products_add.php - handle add product form submission and show the form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require __DIR__ . '/config/db.php';
-
     // Collect and sanitize inputs
     $name = trim($_POST['product_name'] ?? '');
     $category = trim($_POST['category'] ?? '');
@@ -225,8 +251,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $conn->close();
-                    header('Location: products_menu.php?success=1');
-                    exit;
+                    
+                    // Clear output buffer before redirect
+                    while (ob_get_level() > 0) {
+                        ob_end_clean();
+                    }
+                    
+                    // Use Location header with explicit URL encoding
+                    $redirect_url = 'products_add.php?category=' . urlencode($category) . '&success=1';
+                    header('Location: ' . $redirect_url);
+                    exit();
                 }
             } else {
                 $errors[] = 'Failed to prepare database statement: ' . $conn->error;
@@ -235,12 +269,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // If we reach here, there were errors — store them to show below
+    if (!empty($errors)) {
+        // Log errors for debugging on hosted platform
+        error_log('Product Add Errors: ' . json_encode([
+            'category' => $category,
+            'name' => $name,
+            'price' => $price,
+            'errors' => $errors
+        ]));
+    }
 }
-// If a category is provided via query (sidebar quick links), prefill the select
- $prefill_category = isset($_GET['category']) ? trim($_GET['category']) : '';
-// Determine current category (POST takes precedence)
-$current_category = $_POST['category'] ?? $prefill_category;
 
+// If a category is provided via query (sidebar quick links), prefill the select
+$prefill_category = isset($_GET['category']) ? htmlspecialchars(trim($_GET['category'])) : '';
+
+// Determine current category (POST takes precedence)
+$current_category = !empty($_POST['category']) ? htmlspecialchars($_POST['category']) : $prefill_category;
 ?>
 <?php include 'partials/head.php'; ?>
 <?php include 'partials/sidenav.php'; ?>
@@ -259,9 +303,28 @@ $current_category = $_POST['category'] ?? $prefill_category;
                             <?php endforeach; ?>
                         </ul>
                     </div>
+                    <!-- Debug info for hosted platform troubleshooting -->
+                    <details class="mt-3" style="font-size: 0.85rem; color: #666;">
+                        <summary>Debug Information</summary>
+                        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">
+Server: <?php echo htmlspecialchars($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?>
+PHP: <?php echo phpversion(); ?>
+DB: <?php echo $conn ? 'Connected' : 'Not Connected'; ?>
+Category: <?php echo htmlspecialchars($category); ?>
+Name: <?php echo htmlspecialchars($name); ?>
+                        </pre>
+                    </details>
                 <?php endif; ?>
                 <?php if (isset($_GET['success'])): ?>
-                    <div class="alert alert-success">Product added successfully.</div>
+                    <div class="alert alert-success" style="background-color: #d4edda; border-color: #c3e6cb; color: #155724; font-weight: 500;">
+                        <i class="feather icon-check-circle" style="color: #28a745; margin-right: 8px;"></i> Product added successfully. <span id="redirect-message" style="font-style: italic;">Redirecting...</span>
+                    </div>
+                    <script>
+                        // Use JavaScript as fallback redirect
+                        setTimeout(function() {
+                            window.location.href = 'products_add.php?category=<?php echo urlencode($prefill_category); ?>';
+                        }, 2000);
+                    </script>
                 <?php endif; ?>
                 <form method="POST" enctype="multipart/form-data">
                     <div class="form-group">
@@ -293,7 +356,7 @@ $current_category = $_POST['category'] ?? $prefill_category;
                                     <div class="input-group-prepend">
                                         <span class="input-group-text">₱</span>
                                     </div>
-                                    <input type="number" id="price" name="price" class="form-control" step="0.01" required>
+                                    <input type="number" id="price" name="price" class="form-control" step="0.01" required value="<?php echo htmlspecialchars($_POST['price'] ?? ''); ?>">
                                 </div>
                             </div>
 
@@ -319,10 +382,10 @@ $current_category = $_POST['category'] ?? $prefill_category;
                                 <label for="unit">Unit *</label>
                                 <select id="unit" name="unit" class="form-control" required>
                                     <option value="">-- Select Unit --</option>
-                                    <option value="kg">kg</option>
-                                    <option value="piece">piece</option>
-                                    <option value="order">order</option>
-                                    <option value="pcs">pcs</option>
+                                    <option value="kg" <?php echo (isset($_POST['unit']) && $_POST['unit'] === 'kg') ? 'selected' : ''; ?>>kg</option>
+                                    <option value="piece" <?php echo (isset($_POST['unit']) && $_POST['unit'] === 'piece') ? 'selected' : ''; ?>>piece</option>
+                                    <option value="order" <?php echo (isset($_POST['unit']) && $_POST['unit'] === 'order') ? 'selected' : ''; ?>>order</option>
+                                    <option value="pcs" <?php echo (isset($_POST['unit']) && $_POST['unit'] === 'pcs') ? 'selected' : ''; ?>>pcs</option>
                                 </select>
                             </div>
                         </div>
@@ -332,15 +395,15 @@ $current_category = $_POST['category'] ?? $prefill_category;
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="stock">Stock Quantity *</label>
-                                <input type="number" id="stock" name="stock_quantity" class="form-control" min="0" required>
+                                <input type="number" id="stock" name="stock_quantity" class="form-control" min="0" required value="<?php echo htmlspecialchars($_POST['stock_quantity'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="status">Status</label>
                                 <select id="status" name="status" class="form-control">
-                                    <option value="available">Available</option>
-                                    <option value="unavailable">Unavailable</option>
+                                    <option value="available" <?php echo (isset($_POST['status']) && $_POST['status'] === 'available') ? 'selected' : ''; ?>>Available</option>
+                                    <option value="unavailable" <?php echo (isset($_POST['status']) && $_POST['status'] === 'unavailable') ? 'selected' : ''; ?>>Unavailable</option>
                                 </select>
                             </div>
                         </div>
