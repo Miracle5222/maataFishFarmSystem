@@ -17,6 +17,7 @@ try {
 // Load database config early for all requests
 try {
     require __DIR__ . '/config/db.php';
+    require __DIR__ . '/handlers/activity_logger.php';
 } catch (Exception $e) {
     ob_end_clean();
     die('<div class="alert alert-danger">Database connection error</div>');
@@ -150,6 +151,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // Only redirect if there were no errors during image upload
                     if (empty($errors)) {
+                        // Log the activity for fish creation
+                        $user_id = $_SESSION['user_id'] ?? 0;
+                        $user_type = $_SESSION['role'] ?? 'staff';
+                        
+                        logActivity(
+                            $conn,
+                            $user_id,
+                            $user_type,
+                            'CREATE',
+                            'fish_species',
+                            $fish_id,
+                            $name,
+                            "Created fish species: $name - ₱$price/kg"
+                        );
+                        
                         $conn->close();
                         header('Location: products_fish.php?success=1');
                         exit;
@@ -249,6 +265,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                     }
+
+                    // Log the activity for product creation
+                    $user_id = $_SESSION['user_id'] ?? 0;
+                    $user_type = $_SESSION['role'] ?? 'staff';
+                    
+                    logActivity(
+                        $conn,
+                        $user_id,
+                        $user_type,
+                        'CREATE',
+                        'product',
+                        $product_id,
+                        $name,
+                        "Created product: $name - ₱$price/$unit"
+                    );
 
                     $conn->close();
                     

@@ -233,6 +233,25 @@ if ($fish_total_stmt) {
 
 // Menu total already in metrics
 $menu_total = $metrics['total_menu_sales'];
+
+// Total expenses (used to compute net revenue)
+$expenses_stmt = $conn->prepare('SELECT COALESCE(SUM(amount),0) as total FROM expenses');
+$total_expenses = 0.0;
+if ($expenses_stmt) {
+    $expenses_stmt->execute();
+    $er = $expenses_stmt->get_result();
+    $total_expenses = (float)($er->fetch_assoc()['total'] ?? 0);
+    $expenses_stmt->close();
+}
+
+// Compute net revenue by allocating expenses proportionally to fish/menu revenue
+$combined_sales = max(0.0, (float)$metrics['combined_sales']);
+$fish_share = $combined_sales > 0 ? ((float)$metrics['total_sales'] / $combined_sales) : 0.0;
+$menu_share = $combined_sales > 0 ? ((float)$metrics['total_menu_sales'] / $combined_sales) : 0.0;
+
+$net_fish = (float)$metrics['total_sales'] - ($total_expenses * $fish_share);
+$net_menu = (float)$metrics['total_menu_sales'] - ($total_expenses * $menu_share);
+$net_combined = $combined_sales - $total_expenses;
 ?>
 
 <!-- [ Layout content ] Start -->
@@ -440,9 +459,25 @@ $menu_total = $metrics['total_menu_sales'];
                                     <td><strong>Menu Orders:</strong></td>
                                     <td class="text-right">₱<?php echo number_format($metrics['total_menu_sales'], 2); ?></td>
                                 </tr>
+                                <tr>
+                                    <td><strong>Total Expenses:</strong></td>
+                                    <td class="text-right text-danger">₱<?php echo number_format($total_expenses ?? 0, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Net Fish Revenue:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($net_fish ?? 0, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Net Menu Revenue:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($net_menu ?? 0, 2); ?></td>
+                                </tr>
                                 <tr class="border-top">
                                     <td><strong>Total Revenue:</strong></td>
                                     <td class="text-right"><strong>₱<?php echo number_format($metrics['combined_sales'], 2); ?></strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Net Combined Revenue:</strong></td>
+                                    <td class="text-right"><strong>₱<?php echo number_format($net_combined ?? 0, 2); ?></strong></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -582,7 +617,27 @@ new Chart(ctx2, {
         maintainAspectRatio: true,
         plugins: {
             legend: {
-                position: 'bottom'
+                position: 'bottom',
+                labels: {
+                    generateLabels: function(chart) {
+                        const data = chart.data;
+                        if (data.labels.length && data.datasets.length) {
+                            return data.labels.map((label, i) => {
+                                const value = data.datasets[0].data[i];
+                                const percentage = revenueData[i].percentage;
+                                return {
+                                    text: label + ': ₱' + value.toLocaleString(),
+                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                    strokeStyle: data.datasets[0].borderColor,
+                                    lineWidth: data.datasets[0].borderWidth,
+                                    hidden: isNaN(data.datasets[0].data[i]) || chart.getDatasetMeta(0).data[i].hidden,
+                                    index: i
+                                };
+                            });
+                        }
+                        return [];
+                    }
+                }
             },
             tooltip: {
                 callbacks: {

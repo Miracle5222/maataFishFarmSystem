@@ -3,6 +3,7 @@
 // Handles menu order creation by admin for customers
 session_start();
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/activity_logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../admin_menu_order.php?error=Invalid request');
@@ -152,8 +153,12 @@ try {
 
     error_log("[admin_menu_order] Menu order completed successfully: menu_order_id={$menu_order_id}");
 
-    // Redirect to menu orders view with success
-    header('Location: ../menu_orders_view.php?success=Menu order created successfully! Order #' . urlencode($order_number));
+    // Log activity for menu order creation
+    $description = "Created menu order {$order_number} with " . number_format($total, 2) . " total and " . count($valid_items) . " items";
+    logActivity($conn, $aid, 'admin', 'CREATE', 'menu_order', $menu_order_id, $order_number, $description);
+
+    // Redirect to the printable receipt for this order
+    header('Location: ../menu_order_receipt.php?id=' . urlencode($menu_order_id));
     exit;
 
 } catch (Exception $e) {

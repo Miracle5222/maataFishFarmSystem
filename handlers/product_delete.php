@@ -1,7 +1,8 @@
 <?php
 // handlers/product_delete.php
-include __DIR__ . '/auth_admin.php';
+include __DIR__ . '/../auth_admin.php';
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/activity_logger.php';
 header('Content-Type: application/json');
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['ok' => 0, 'msg' => 'Invalid request']);
@@ -38,8 +39,38 @@ if (!$del) {
     echo json_encode(['ok' => 0, 'msg' => 'Prepare failed']);
     exit;
 }
+
+// Get product name before deletion for logging
+$getName = $conn->prepare('SELECT name FROM products WHERE id = ?');
+if ($getName) {
+    $getName->bind_param('i', $id);
+    $getName->execute();
+    $result = $getName->get_result();
+    $product = $result->fetch_assoc();
+    $product_name = $product['name'] ?? 'Unknown Product';
+    $getName->close();
+}
+
 $del->bind_param('i', $id);
 $ok = $del->execute();
 $del->close();
-if ($ok) echo json_encode(['ok' => 1, 'msg' => 'Deleted']);
-else echo json_encode(['ok' => 0, 'msg' => 'Delete failed']);
+if ($ok) {
+    // Log the activity
+    $user_id = $_SESSION['user_id'] ?? 0;
+    $user_type = $_SESSION['role'] ?? 'staff';
+    
+    logActivity(
+        $conn,
+        $user_id,
+        $user_type,
+        'DELETE',
+        'product',
+        $id,
+        $product_name,
+        "Deleted product: $product_name"
+    );
+    
+    echo json_encode(['ok' => 1, 'msg' => 'Deleted']);
+} else {
+    echo json_encode(['ok' => 0, 'msg' => 'Delete failed']);
+}

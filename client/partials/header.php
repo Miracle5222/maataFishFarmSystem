@@ -225,18 +225,17 @@ if ($clientLoggedIn) {
     <header>
         <div class="header-container">
             <div class="logo">
-                <i class="fas fa-fish"></i>
-                Maata Fish Farm
+                <img src="../assets/img/maataLogo.png" alt="Maata Fish Farm" style="height: 60px; width: auto;">
             </div>
             <nav>
                 <a href="index.php">Home</a>
                 <a href="menu.php">Menu</a>
-                <a href="booking.php">Book Now</a>
+                <a href="booking.php">Reserve Now</a>
                 <a href="about.php">About</a>
                 <a href="contact.php">Contact</a>
             </nav>
             <div class="nav-buttons">
-                <a href="booking.php" class="btn btn-primary"><i class="fas fa-calendar"></i> Book</a>
+                <a href="booking.php" class="btn btn-primary"><i class="fas fa-calendar"></i> Reserve</a>
                 <?php if ($clientLoggedIn): ?>
                     <div class="user-dropdown" style="position:relative; display:inline-block;">
                         <button id="userMenuBtn" class="btn btn-secondary" style="display:flex; align-items:center; gap:8px;">
@@ -245,6 +244,7 @@ if ($clientLoggedIn) {
                         <div id="userMenu" style="position:absolute; right:0; top:calc(100% + 8px); background:white; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:none; min-width:220px; z-index:2000;">
                             <a href="cart.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">🛒 Cart</a>
                             <a href="orders.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">📋 Orders <?php if ($latest_order): ?><span style="float:right; background:#27ae60; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px;"><?php echo htmlspecialchars($latest_order['status']); ?></span><?php endif; ?></a>
+                            <a href="reservations.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">📅 Reservations</a>
                             <a href="profile.php" style="display:block; padding:10px 14px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;">👤 My Account</a>
                             <a href="../handlers/client_logout.php" style="display:block; padding:10px 14px; color:#c00; text-decoration:none;">🚪 Logout</a>
                         </div>
@@ -260,7 +260,7 @@ if ($clientLoggedIn) {
         var clientLoggedIn = <?php echo $clientLoggedIn ? 'true' : 'false'; ?>;
         var clientId = <?php echo isset($_SESSION['client_id']) ? (int)$_SESSION['client_id'] : 'null'; ?>;
 
-        function addToCart(id, name, price, unit) {
+        function addToCart(id, name, price, unit, type = 'fish') {
             if (!clientLoggedIn) {
                 var next = encodeURIComponent(window.location.pathname + window.location.search);
                 window.location.href = 'login.php?next=' + next;
@@ -273,7 +273,8 @@ if ($clientLoggedIn) {
                 // Add to database cart via AJAX
                 var formData = new FormData();
                 formData.append('action', 'add');
-                formData.append('product_id', id);
+                formData.append('item_id', id);
+                formData.append('item_type', type);
                 formData.append('quantity', qty);
                 
                 fetch('../handlers/client_cart_api.php', {

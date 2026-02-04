@@ -1,6 +1,7 @@
 <?php
 session_start();
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../handlers/activity_logger.php';
 
 // Check if user is logged in and is admin/manager/staff
 if (empty($_SESSION['user_id']) || empty($_SESSION['role'])) {
@@ -141,6 +142,19 @@ try {
         }
         
         $update_stmt->close();
+        
+        // Log the activity
+        logActivity(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'EDIT',
+            'availability',
+            $id,
+            $available_date . ' ' . $available_time_start,
+            "Updated availability - Date: $available_date | Time: $available_time_start-$available_time_end | Capacity: $max_capacity | Status: " . ($is_available ? 'Available' : 'Unavailable')
+        );
+        
         header('Location: ../availability_set.php?message=' . urlencode('Availability updated successfully'));
     } else {
         // Insert new record
@@ -162,7 +176,21 @@ try {
             throw new Exception($error_msg);
         }
         
+        $new_id = $insert_stmt->insert_id;
         $insert_stmt->close();
+        
+        // Log the activity
+        logActivity(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'CREATE',
+            'availability',
+            $new_id,
+            $available_date . ' ' . $available_time_start,
+            "Created availability slot - Date: $available_date | Time: $available_time_start-$available_time_end | Capacity: $max_capacity"
+        );
+        
         header('Location: ../availability_set.php?message=' . urlencode('Availability set successfully'));
     }
     

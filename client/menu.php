@@ -42,7 +42,16 @@ if ($stmt) {
                             </div>
                             <div style="padding: 20px;">
                                 <p style="color: #666; margin-bottom: 15px;"><?php echo htmlspecialchars(substr($m['description'] ?? '', 0, 120)); ?></p>
-                                <p style="font-size: 18px; color: #27ae60; font-weight: bold;">₱<?php echo number_format($m['price'], 2); ?></p>
+                                <p style="font-size: 18px; color: #27ae60; font-weight: bold;">₱<?php echo number_format($m['price'], 2); ?> / <?php echo htmlspecialchars($m['unit']); ?></p>
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                                    <input type="number" min="1" value="1" id="qty_<?php echo $m['id']; ?>" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;" max="<?php echo (int)$m['stock_quantity']; ?>">
+                                    <?php if ((int)$m['stock_quantity'] > 0): ?>
+                                        <button class="btn btn-success btn-sm" onclick="addToCart(<?php echo $m['id']; ?>,'<?php echo htmlspecialchars(addslashes($m['name'])); ?>',<?php echo $m['price']; ?>,'<?php echo htmlspecialchars($m['unit']); ?>','product')"><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                                    <?php else: ?>
+                                        <button class="btn btn-danger btn-sm" disabled><i class="fas fa-exclamation-triangle"></i> Out of Stock</button>
+                                    <?php endif; ?>
+                                </div>
+                                <small class="text-muted d-block mt-2" <?php if ((int)$m['stock_quantity'] <= 0): ?>style="color: red;"<?php endif; ?>>Stock: <?php echo (int)$m['stock_quantity']; ?></small>
                             </div>
                         </div>
                         <?php endforeach; ?>

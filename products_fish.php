@@ -38,6 +38,7 @@
                             <th>Current Stock</th>
 
                             <th>Status</th>
+                            <th>Debug: Raw Description</th>
                             <th class="text-right">Actions</th>
                         </tr>
                     </thead>
@@ -51,6 +52,9 @@
                                 <td><?php echo (int)$f['stock']; ?></td>
 
                                 <td><?php echo htmlspecialchars(ucfirst($f['status'])); ?></td>
+                                <td style="max-width:200px; font-size:11px; word-break:break-all; background:#f9f9f9; color:#333;">
+                                    <?php echo var_export($f['description'], true); ?>
+                                </td>
                                 <td class="text-right">
                                     <button class="btn btn-sm btn-icon btn-outline-info view-fish"
                                         data-id="<?php echo (int)$f['fish_id']; ?>"
@@ -59,7 +63,7 @@
                                         data-price="<?php echo number_format($f['price_per_kg'], 2, '.', ''); ?>"
                                         data-stock="<?php echo (int)$f['stock']; ?>"
                                         data-harvest="<?php echo htmlspecialchars($f['harvest_schedule']); ?>"
-                                        data-desc="<?php echo htmlspecialchars($f['description']); ?>"
+                                        data-desc='<?php echo htmlspecialchars(json_encode(($f["description"] === "0" || $f["description"] === 0) ? "" : $f["description"]), ENT_QUOTES, "UTF-8"); ?>'
                                         data-status="<?php echo htmlspecialchars($f['status']); ?>"
                                         data-image="<?php echo htmlspecialchars($f['image'] ?? ''); ?>"
                                         title="View"><i class="feather icon-eye"></i></button>
@@ -70,7 +74,7 @@
                                         data-price="<?php echo number_format($f['price_per_kg'], 2, '.', ''); ?>"
                                         data-stock="<?php echo (int)$f['stock']; ?>"
                                         data-harvest="<?php echo htmlspecialchars($f['harvest_schedule']); ?>"
-                                        data-desc="<?php echo htmlspecialchars($f['description']); ?>"
+                                        data-desc='<?php echo htmlspecialchars(json_encode(($f["description"] === "0" || $f["description"] === 0) ? "" : $f["description"]), ENT_QUOTES, "UTF-8"); ?>'
                                         data-status="<?php echo htmlspecialchars($f['status']); ?>"
                                         title="Edit"><i class="feather icon-edit-2"></i></button>
                                     <button class="btn btn-sm btn-icon btn-outline-danger delete-fish" data-id="<?php echo (int)$f['fish_id']; ?>" title="Delete"><i class="feather icon-trash-2"></i></button>
@@ -101,6 +105,11 @@
                             <input class="form-control" name="name" id="fish_name" required>
                         </div>
 
+                        <div class="form-group">
+                            <label>Local Name</label>
+                            <input class="form-control" name="local_name" id="fish_local">
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group col-md-4">
                                 <label>Price/kg</label>
@@ -117,6 +126,11 @@
                                     <option value="unavailable">Unavailable</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Harvest Schedule</label>
+                            <input class="form-control" name="harvest_schedule" id="fish_harvest">
                         </div>
 
                         <div class="form-group">
@@ -208,9 +222,13 @@
                 var b = $(this);
                 $('#fish_id').val(b.data('id'));
                 $('#fish_name').val(b.data('name'));
+                $('#fish_local').val(b.data('local'));
                 $('#fish_price').val(b.data('price'));
                 $('#fish_stock').val(b.data('stock'));
-                $('#fish_description').val(b.data('desc'));
+                $('#fish_harvest').val(b.data('harvest'));
+                var desc = b.data('desc');
+                try { desc = desc ? JSON.parse(desc) : ''; } catch (e) { desc = desc || ''; }
+                $('#fish_description').val(desc);
                 $('#fish_status').val(b.data('status'));
                 // clear any selected file
                 $('#fish_image').val('');

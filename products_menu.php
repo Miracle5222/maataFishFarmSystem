@@ -53,7 +53,7 @@
                                         <td><strong><?php echo htmlspecialchars($m['name']); ?></strong></td>
                                         <td><span class="badge badge-light-primary"><?php echo htmlspecialchars(ucfirst($m['category'])); ?></span></td>
                                         <td>₱<?php echo number_format($m['price'], 2); ?></td>
-                                        <td><span class="badge badge-success"><?php echo (int)$m['stock_quantity']; ?></span></td>
+                                        <td><span class="<?= ($m['stock_quantity'] <= 0) ? 'badge badge-danger' : 'badge badge-success'; ?>"><?php echo (int)$m['stock_quantity']; ?></span></td>
                                         <td><?php echo htmlspecialchars(substr($m['description'] ?? '', 0, 40)); ?></td>
                                         <td><span class="badge badge-light-<?php echo ($m['status'] === 'available') ? 'success' : 'danger'; ?>"><?php echo htmlspecialchars(ucfirst($m['status'])); ?></span></td>
                                         <td class="text-right">
@@ -103,7 +103,7 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeEditMenu()">&times;</button>
             </div>
             <form id="editMenuForm" enctype="multipart/form-data">
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     <input type="hidden" name="id" id="edit_menu_id">
                     
                     <div class="form-group">

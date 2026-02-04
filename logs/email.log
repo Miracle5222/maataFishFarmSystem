@@ -140,3 +140,109 @@ Maata Fish Farm
 [2026-01-06 11:21:16] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260106-0391 | status: confirmed
 [2026-01-06 11:21:32] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260106-0391 | status: completed
 [2026-01-06 11:21:43] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260106-0391 | status: cancelled
+[2026-01-21 18:58:29] Email sent to zebra@gmail.com | reservation: RES-20260107-7093 | status: cancelled
+[2026-01-21 18:58:41] Email sent to xamaagad@gmail.com | reservation: RES-20260113-2616 | status: cancelled
+[2026-01-21 18:58:52] Email sent to mateo@gmail.com | reservation: RES-20260121-6702 | status: confirmed
+[2026-01-21 19:29:50] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260121-4878 | status: confirmed
+[2026-01-21 19:29:50] Cottage 5 set to unavailable for confirmed reservation 12
+[2026-01-21 19:30:27] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260121-4878 | status: completed
+[2026-01-21 19:30:55] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260121-4878 | status: cancelled
+[2026-01-21 19:31:31] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260113-0186 | status: confirmed
+[2026-01-21 19:32:06] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260113-0186 | status: completed
+[2026-01-21 19:32:25] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260113-0186 | status: cancelled
+[2026-01-21 19:36:43] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260113-0186 | status: confirmed
+[2026-01-21 19:38:03] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260113-0186 | status: cancelled
+[2026-01-21 19:38:43] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260121-4878 | status: confirmed
+[2026-01-21 19:38:43] Cottage 5 set to unavailable for confirmed reservation 12
+[2026-01-21 19:38:54] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260121-4878 | status: cancelled
+[2026-01-22 03:32:28] Email FAILED for xamaagad@gmail.com | reservation: RES-20260113-2616 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-22 03:51:11] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260122-2051 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-22 03:51:11] Cottage 4 set to unavailable for confirmed reservation 13
+[2026-01-22 03:52:40] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260122-0831 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-22 03:52:40] Cottage 5 set to unavailable for confirmed reservation 14
+[2026-01-23 07:13:18] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260122-2051 | status: cancelled
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-23 07:13:39] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260122-0831 | status: cancelled
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-27 16:51:34] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-1797 | status: confirmed
+[2026-01-27 16:51:34] Cottage 7 set to unavailable for confirmed reservation 16
+[2026-01-27 16:59:14] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-1797 | status: confirmed
+[2026-01-27 16:59:14] Availability slot marked as booked for confirmed reservation 16 (cottage: 7, date: 2026-01-28, time: 11:45:00)
+[2026-01-27 17:01:02] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-6475 | status: confirmed
+[2026-01-27 17:01:02] Availability slot marked as booked for confirmed reservation 17 (cottage: 7, date: 2026-01-27, time: 14:00:00)
+[2026-01-27 17:01:02] Cottage 7 marked as unavailable - all slots booked
+[2026-01-27 19:22:08] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-7141 | status: confirmed
+[2026-01-27 19:22:08] Cottage 17 set to unavailable for confirmed reservation 18
+[2026-01-27 19:31:35] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-2728 | status: confirmed
+[2026-01-27 19:31:35] Cottage 18 set to unavailable for confirmed reservation 19
+[2026-01-27 19:40:46] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-1184 | status: confirmed
+[2026-01-27 19:40:46] Cottage 18 set to unavailable for confirmed reservation 20
+[2026-01-27 19:55:32] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-2884 | status: confirmed
+[2026-01-27 19:55:32] Cottage 22 set to unavailable for confirmed reservation 21
+[2026-01-27 19:57:27] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-7835 | status: confirmed
+[2026-01-27 20:09:49] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260127-8517 | status: confirmed
+[2026-01-28 04:24:37] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-8722 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 04:24:59] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-8722 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 04:28:13] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-4945 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 04:49:17] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-6098 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:36:05] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-0646 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:43:55] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-4838 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:44:00] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-8230 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:45:28] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-1414 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:46:01] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-2581 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 07:46:46] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260128-1013 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 08:03:12] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260123-3232 | status: cancelled
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-01-28 17:30:41] Email sent to mia@gmail.com | reservation: RES-20260128-1772 | status: cancelled
+[2026-01-28 19:12:59] Email sent to max@gmail.com | reservation: RES-20260128-7386 | status: cancelled
+[2026-01-28 19:13:01] Email sent to max@gmail.com | reservation: RES-20260128-6807 | status: cancelled
+[2026-01-29 17:55:47] Email sent to sin@gmail.com | reservation: RES-20260129-4237 | status: cancelled
+[2026-02-03 03:28:17] Email FAILED for sin@gmail.com | reservation: RES-20260129-4237 | status: cancelled
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---

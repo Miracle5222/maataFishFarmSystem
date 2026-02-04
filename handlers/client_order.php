@@ -3,6 +3,7 @@
 // Minimal client-side order handler for fish orders from booking page
 session_start();
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/activity_logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../client/booking.php?error=Invalid request');
@@ -110,6 +111,24 @@ if ($updateStock) {
     $updateStock->execute();
     $updateStock->close();
 }
+
+// Log the activity
+$user_id = $customer_id;
+$user_type = 'customer';
+if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
+    $user_id = $_SESSION['user_id'];
+    $user_type = $_SESSION['role'];
+}
+logActivity(
+    $conn,
+    $user_id,
+    $user_type,
+    'CREATE',
+    'order',
+    $order_id,
+    $order_number,
+    "Client order: {$fish['name']} x $quantity kg = ₱" . number_format($total, 2)
+);
 
 header('Location: ../client/booking.php?success=Order placed successfully');
 exit;

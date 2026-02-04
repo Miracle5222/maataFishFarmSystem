@@ -3,6 +3,7 @@
 // Handles order cancellation for pending orders
 session_start();
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/activity_logger.php';
 
 header('Content-Type: application/json');
 
@@ -64,11 +65,17 @@ try {
         $product_id = (int) $item['product_id'];
         $quantity = (int) $item['quantity'];
         
-        // Increment stock back
-        $stock_stmt = $conn->prepare('UPDATE fish_species SET stock = stock + ? WHERE fish_id = ? OR id = ?');
-        $stock_stmt->bind_param('iii', $quantity, $product_id, $product_id);
-        $stock_stmt->execute();
-        $stock_stmt->close();
+        // Try to update products table first
+        $product_update = $conn->prepare('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?');
+        $product_update->bind_param('ii', $quantity, $product_id);
+        $product_update->execute();
+        $product_update->close();
+        
+        // Also try to update fish_species table (for fish orders)
+        $fish_update = $conn->prepare('UPDATE fish_species SET stock = stock + ? WHERE fish_id = ?');
+        $fish_update->bind_param('ii', $quantity, $product_id);
+        $fish_update->execute();
+        $fish_update->close();
     }
     $items_stmt->close();
 
@@ -87,6 +94,19 @@ try {
 
     // Commit transaction
     $conn->commit();
+
+    // Log the activity
+    $user_id = $cid;
+    logActivity(
+        $conn,
+        $user_id,
+        'customer',
+        'DELETE',
+        'order',
+        $order_id,
+        "Order #$order_id",
+        "Cancelled order #$order_id - Amount: ₱" . $order['total_amount']
+    );
 
     error_log("[order_cancel] Order {$order_id} cancelled successfully for customer {$cid}");
     echo json_encode(['success' => true, 'message' => 'Order cancelled successfully']);

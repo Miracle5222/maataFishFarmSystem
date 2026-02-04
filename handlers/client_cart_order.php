@@ -47,6 +47,11 @@ $customer_name = trim($_POST['customer_name'] ?? '');
 $customer_contact = trim($_POST['customer_contact'] ?? '');
 $pickup_date = $_POST['pickup_date'] ?? null;
 
+// Convert datetime-local format (2026-02-03T14:30) to MySQL format (2026-02-03 14:30:00)
+if ($pickup_date) {
+    $pickup_date = str_replace('T', ' ', $pickup_date) . ':00';
+}
+
 // Decode cart
 $cart = json_decode($cartJson, true);
 
@@ -69,30 +74,36 @@ $total = 0.0;
 $items = [];
 
 foreach ($cart as $it) {
-    $fish_id = (int) ($it['id'] ?? 0);
+    $item_id = (int) ($it['item_id'] ?? $it['id'] ?? 0);
+    $item_type = $it['item_type'] ?? 'fish';
     $qty = (int) ($it['qty'] ?? 0);
     
-    if ($fish_id <= 0 || $qty <= 0) {
+    if ($item_id <= 0 || $qty <= 0) {
         continue;
     }
     
-    // Query fish by fish_id
-    $fish = null;
-    $stmt = $conn->prepare('SELECT fish_id, name, price_per_kg, stock FROM fish_species WHERE fish_id = ? AND status = "available" LIMIT 1');
+    // Query item
+    $stmt = null;
+    if ($item_type === 'fish') {
+        $stmt = $conn->prepare('SELECT fish_id AS id, name, price_per_kg AS price, stock FROM fish_species WHERE fish_id = ? AND status = "available" LIMIT 1');
+    } else {
+        $stmt = $conn->prepare('SELECT id, name, price, stock_quantity AS stock FROM products WHERE id = ? AND status = "available" LIMIT 1');
+    }
     
     if ($stmt) {
-        $stmt->bind_param('i', $fish_id);
+        $stmt->bind_param('i', $item_id);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($result && $result->num_rows > 0) {
             $row = $result->fetch_assoc();
-            $unit_price = (float) $row['price_per_kg'];
+            $unit_price = (float) $row['price'];
             $subtotal = $unit_price * $qty;
             $total += $subtotal;
             
             $items[] = [
-                'fish_id' => (int) $row['fish_id'],
+                'item_id' => (int) $row['id'],
+                'item_type' => $item_type,
                 'name' => $row['name'],
                 'quantity' => $qty,
                 'unit_price' => $unit_price,
@@ -151,15 +162,19 @@ foreach ($items as $item) {
     $stmt = $conn->prepare('INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)');
     
     if ($stmt) {
-        $stmt->bind_param('iiidd', $order_id, $item['fish_id'], $item['quantity'], $item['unit_price'], $item['subtotal']);
+        $stmt->bind_param('iiidd', $order_id, $item['item_id'], $item['quantity'], $item['unit_price'], $item['subtotal']);
         $stmt->execute();
         $stmt->close();
     }
     
     // Update stock
-    $stmt = $conn->prepare('UPDATE fish_species SET stock = GREATEST(stock - ?, 0) WHERE fish_id = ?');
+    if ($item['item_type'] === 'fish') {
+        $stmt = $conn->prepare('UPDATE fish_species SET stock = GREATEST(stock - ?, 0) WHERE fish_id = ?');
+    } else {
+        $stmt = $conn->prepare('UPDATE products SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?');
+    }
     if ($stmt) {
-        $stmt->bind_param('ii', $item['quantity'], $item['fish_id']);
+        $stmt->bind_param('ii', $item['quantity'], $item['item_id']);
         $stmt->execute();
         $stmt->close();
     }

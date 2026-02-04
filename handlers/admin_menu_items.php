@@ -20,8 +20,8 @@ if (empty($_SESSION['user_id']) || empty($_SESSION['role'])) {
 $fish_items = [];
 $product_items = [];
 
-// Get available fish
-$fish_stmt = $conn->prepare('SELECT fish_id as id, name, price_per_kg as price, stock, image FROM fish_species WHERE status = "available" AND stock > 0 ORDER BY name');
+// Get fish (include out-of-stock so UI can label them)
+$fish_stmt = $conn->prepare('SELECT fish_id as id, name, price_per_kg as price, stock, image FROM fish_species WHERE status = "available" ORDER BY name');
 if ($fish_stmt) {
     $fish_stmt->execute();
     $fish_res = $fish_stmt->get_result();
@@ -31,8 +31,8 @@ if ($fish_stmt) {
     $fish_stmt->close();
 }
 
-// Get available products
-$prod_stmt = $conn->prepare('SELECT id, name, category, price, stock_quantity as stock, image FROM products WHERE category IN ("food","snack","drink") AND status = "available" AND stock_quantity > 0 ORDER BY category, name');
+// Get products (include out-of-stock so UI can label them)
+$prod_stmt = $conn->prepare('SELECT id, name, category, price, stock_quantity as stock, image FROM products WHERE category IN ("food","snack","drink") AND status = "available" ORDER BY category, name');
 if ($prod_stmt) {
     $prod_stmt->execute();
     $prod_res = $prod_stmt->get_result();

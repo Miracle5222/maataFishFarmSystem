@@ -1,6 +1,13 @@
 <?php
 include 'config/db.php';
 include 'auth_admin.php';
+
+// Check and update reservations table schema if needed
+$result = $conn->query("SHOW COLUMNS FROM reservations LIKE 'cottage_id'");
+if ($result->num_rows == 0) {
+    $conn->query("ALTER TABLE reservations ADD COLUMN cottage_id INT NULL");
+}
+
 include 'partials/head.php';
 ?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
@@ -56,10 +63,12 @@ include 'partials/head.php';
                     </thead>
                     <tbody>
                         <?php
-                        // Fetch all reservations - filtering done by DataTables
-                        $query = "SELECT r.*, c.first_name, c.last_name, c.email, c.phone
+                        // Fetch all reservations except cottage - filtering done by DataTables
+                        $query = "SELECT r.*, c.first_name, c.last_name, c.email, c.phone, ct.cottage_number
                                   FROM reservations r
                                   LEFT JOIN customers c ON r.customer_id = c.id
+                                  LEFT JOIN cottages ct ON r.cottage_id = ct.id
+                                  WHERE r.reservation_type != 'cottage'
                                   ORDER BY r.reservation_date DESC, r.reservation_time DESC";
 
                         $result = $conn->query($query);
@@ -107,7 +116,7 @@ include 'partials/head.php';
                                                         Actions
                                                     </button>
                                                     <div class=\"dropdown-menu dropdown-menu-right\">
-                                                        <button type=\"button\" class=\"dropdown-item\" onclick=\"viewReservation('{$customer_name}', '{$reservation['contact_email']}', '{$reservation['contact_phone']}', '{$reservation['reservation_type']}', {$reservation['num_guests']}, '{$reservation['reservation_date']}', '{$reservation['reservation_time']}', '{$reservation['special_requests']}')\" data-toggle=\"modal\" data-target=\"#detailsModal\"><i class=\"feather icon-eye\"></i> View</button>
+                                                        <button type=\"button\" class=\"dropdown-item\" onclick=\"viewReservation('{$customer_name}', '{$reservation['contact_email']}', '{$reservation['contact_phone']}', '{$reservation['reservation_type']}', {$reservation['num_guests']}, '{$reservation['reservation_date']}', '{$reservation['reservation_time']}', '{$reservation['special_requests']}', '{$reservation['cottage_number']}')\" data-toggle=\"modal\" data-target=\"#detailsModal\"><i class=\"feather icon-eye\"></i> View</button>
                                                         <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=confirmed\" class=\"dropdown-item\" onclick=\"return confirm('Confirm this reservation?')\"><i class=\"feather icon-check\"></i> Confirm</a>
                                                         <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=completed\" class=\"dropdown-item\" onclick=\"return confirm('Mark as completed?')\"><i class=\"feather icon-check-circle\"></i> Done</a>
                                                         <div class=\"dropdown-divider\"></div>
@@ -119,7 +128,7 @@ include 'partials/head.php';
                                 ";
                             }
                         } else {
-                            echo "<tr><td colspan='9' class='text-center text-muted py-4'>No reservations found</td></tr>";
+                            echo "<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class='text-center text-muted py-4'>No reservations found</td></tr>";
                         }
                         ?>
                     </tbody>
@@ -176,8 +185,9 @@ include 'partials/head.php';
         });
     });
 
-    function viewReservation(name, email, phone, type, guests, date, time, requests) {
+    function viewReservation(name, email, phone, type, guests, date, time, requests, cottageNumber) {
         const detailsBody = document.getElementById('detailsBody');
+        const cottageInfo = cottageNumber ? `<p><strong>Cottage:</strong> ${cottageNumber}</p>` : '';
         detailsBody.innerHTML = `
                     <div class="row">
                         <div class="col-md-6">
@@ -185,6 +195,7 @@ include 'partials/head.php';
                             <p><strong>Email:</strong> ${email}</p>
                             <p><strong>Phone:</strong> ${phone}</p>
                             <p><strong>Reservation Type:</strong> <span class="badge badge-primary">${type}</span></p>
+                            ${cottageInfo}
                         </div>
                         <div class="col-md-6">
                             <p><strong>Number of Guests:</strong> ${guests}</p>

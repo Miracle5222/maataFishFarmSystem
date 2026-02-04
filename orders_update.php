@@ -4,6 +4,12 @@
 
 require __DIR__ . '/auth_admin.php';
 
+function formatDateTime($datetime) {
+    if (empty($datetime)) return '';
+    $dt = new DateTime($datetime);
+    return $dt->format('M j, Y g:iA'); // e.g., Feb 2, 2026 2:30PM
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: orders_view.php');
     exit;
@@ -60,7 +66,7 @@ if ($status === 'confirmed') {
     
     $customer_name = htmlspecialchars($order['first_name'] . ' ' . $order['last_name']);
     $order_number = htmlspecialchars($order['order_number']);
-    $pickup_date = htmlspecialchars($order['pickup_date']);
+    $pickup_date = htmlspecialchars($order['pickup_date'] ? formatDateTime($order['pickup_date']) : 'Not specified');
     $customer_email = htmlspecialchars($order['email']);
     
     $subject = 'Order Confirmed - ' . $order_number;

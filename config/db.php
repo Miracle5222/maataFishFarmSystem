@@ -12,4 +12,8 @@ if ($conn->connect_error) {
 }
 $conn->set_charset('utf8mb4');
 
+// Set timezone to Philippines (UTC+8) for consistent time display
+date_default_timezone_set('Asia/Manila');
+$conn->query("SET time_zone = '+08:00'");
+
 ?>

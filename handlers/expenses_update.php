@@ -2,6 +2,7 @@
 // handlers/expenses_update.php
 require __DIR__ . '/../auth_admin.php';
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/activity_logger.php';
 
 if (empty($_SESSION['role']) || !in_array($_SESSION['role'], ['staff','manager','admin'])) {
     header('Location: ../index.php?error=Access denied');
@@ -78,6 +79,21 @@ if (!$stmt->execute()) {
     exit;
 }
 $stmt->close();
+
+// Log the activity
+$user_id = $_SESSION['user_id'] ?? 0;
+$user_type = $_SESSION['role'] ?? 'staff';
+
+logActivity(
+    $conn,
+    $user_id,
+    $user_type,
+    'EDIT',
+    'expense',
+    $id,
+    $item_name,
+    "Updated expense: $item_name | Category: $category | Amount: ₱$amount | Quantity: $quantity $unit"
+);
 
 header('Location: ../expenses.php?success=' . urlencode('Updated'));
 exit;

@@ -1,67 +1,11 @@
 -- phpMyAdmin SQL Dump
 -- version 4.9.0.1
 -- https://www.phpmyadmin.net/
---
--- Host: sql301.infinityfree.com
--- Generation Time: Jan 13, 2026 at 11:20 AM
--- Server version: 11.4.9-MariaDB
--- PHP Version: 7.2.22
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET AUTOCOMMIT = 0;
-START TRANSACTION;
-SET time_zone = "+00:00";
+-- MOVED: Original SQL dump moved to handlers/removed/if0_40748817_maata.sql
+-- Purpose: This file is an archival SQL dump and is not used by the running PHP application.
+-- Action taken: content archived and replaced with this notice on 2026-01-28 to avoid accidental execution.
 
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Database: `if0_40748817_maata`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `availability`
---
-
-CREATE TABLE `availability` (
-  `id` int(11) NOT NULL,
-  `available_date` date NOT NULL,
-  `available_time_start` time NOT NULL,
-  `available_time_end` time NOT NULL,
-  `max_capacity` int(11) DEFAULT 50,
-  `current_reservations` int(11) DEFAULT 0,
-  `is_available` tinyint(1) DEFAULT 1,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `availability`
---
-
-INSERT INTO `availability` (`id`, `available_date`, `available_time_start`, `available_time_end`, `max_capacity`, `current_reservations`, `is_available`, `notes`, `created_at`, `updated_at`) VALUES
-(4, '2025-12-22', '10:00:00', '20:00:00', 2, 0, 1, 'no kids', '2025-12-22 18:31:33', '2025-12-22 18:31:33'),
-(5, '2025-12-23', '10:00:00', '20:00:00', 50, 0, 1, 'no kids', '2025-12-22 18:32:17', '2025-12-22 18:37:32'),
-(6, '2025-12-23', '22:00:00', '23:00:00', 3, 0, 1, 'asdf', '2025-12-22 18:35:00', '2025-12-22 18:35:00'),
-(7, '2025-12-27', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:23', '2025-12-22 18:47:23'),
-(8, '2025-12-28', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(9, '2026-01-03', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(10, '2026-01-04', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(11, '2026-01-10', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(12, '2026-01-11', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(13, '2026-01-17', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24'),
-(14, '2026-01-18', '10:00:00', '20:00:00', 20, 0, 1, '', '2025-12-22 18:47:24', '2025-12-22 18:47:24');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `calendar_bookings`
 --
 
 CREATE TABLE `calendar_bookings` (
@@ -309,7 +253,7 @@ CREATE TABLE `orders` (
   `order_number` varchar(20) NOT NULL,
   `customer_id` int(11) NOT NULL,
   `order_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `pickup_date` date DEFAULT NULL,
+  `pickup_date` datetime DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `status` enum('pending','confirmed','paid','cancelled') DEFAULT 'pending',
   `notes` text DEFAULT NULL,

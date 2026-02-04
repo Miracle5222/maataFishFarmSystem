@@ -12,6 +12,7 @@
         margin: 0;
     ">
         <div class="container">
+            <img src="../assets/img/maataLogo.png" alt="Maata Logo" style="height: 180px; margin-bottom: 30px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
             <h1 style="font-size: 48px; margin-bottom: 20px;">Welcome to Maata Fish Farm</h1>
             <p style="font-size: 20px; margin-bottom: 15px;">Family-owned Aquaculture & Food Service</p>
             <p style="font-size: 18px; margin-bottom: 30px;">Fresh Fish Daily • Authentic Filipino Cuisine • Event Hosting</p>
@@ -79,10 +80,10 @@
                                 <?php if ((int)$p['stock_quantity'] > 0): ?>
                                     <button class="btn btn-success btn-sm" onclick="addToCart(<?php echo $p['fish_id']; ?>,'<?php echo htmlspecialchars(addslashes($p['name'])); ?>',<?php echo $p['price']; ?>,'kg')"><i class="fas fa-cart-plus"></i> Add to Cart</button>
                                 <?php else: ?>
-                                    <button class="btn btn-secondary btn-sm" disabled>Out of stock</button>
+                                    <button class="btn btn-danger btn-sm" disabled><i class="fas fa-exclamation-triangle"></i> Out of Stock</button>
                                 <?php endif; ?>
                             </div>
-                            <small class="text-muted d-block mt-2">Stock: <?php echo (int)$p['stock_quantity']; ?></small>
+                            <small class="text-muted d-block mt-2" <?php if ((int)$p['stock_quantity'] <= 0): ?>style="color: red;"<?php endif; ?>>Stock: <?php echo (int)$p['stock_quantity']; ?></small>
                         </div>
                     </div>
                 <?php endforeach; ?>

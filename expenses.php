@@ -14,11 +14,11 @@ require 'config/db.php';
 ?>
 <div class="layout-content">
     <div class="container-fluid flex-grow-1 container-p-y">
-        <div class="row mt-3">
-            <div class="col-md-5">
-                <div class="card">
-                    <div class="card-header"><h4 class="card-title">Record Expense</h4></div>
-                    <div class="card-body">
+    <div class="mt-3">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header"><h4 class="card-title">Record Expense</h4></div>
+                <div class="card-body">
                         <?php if (!empty($_GET['error'])): ?>
                             <div class="alert alert-danger alert-dismissible fade show expense-auto-close text-dark" role="alert" style="background-color:#f8d7da;">
                                 <?php echo htmlspecialchars($_GET['error']); ?>
@@ -33,8 +33,45 @@ require 'config/db.php';
                         <?php endif; ?>
                         <form method="post" action="handlers/expenses_handler.php" enctype="multipart/form-data">
                             <div class="form-group">
-                                <label>Amount</label>
-                                <input type="number" step="0.01" name="amount" class="form-control" required>
+                                <label>Category</label>
+                                <select name="category" class="form-control" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="labor">Labor</option>
+                                    <option value="ingredients">Ingredients</option>
+                                    <option value="feeds">Feeds (Fish)</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Item Name</label>
+                                <input type="text" name="item_name" maxlength="255" class="form-control" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Quantity</label>
+                                    <input type="number" step="0.01" name="quantity" class="form-control" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Unit</label>
+                                    <select name="unit" class="form-control" required>
+                                        <option value="pcs">pcs</option>
+                                        <option value="kg">kg</option>
+                                        <option value="lg">lg</option>
+                                        <option value="box">box</option>
+                                        <option value="pack">pack</option>
+                                        <option value="other">other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Receipt #</label>
+                                    <input type="text" name="receipt_number" maxlength="100" class="form-control">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Amount</label>
+                                    <input type="number" step="0.01" name="amount" class="form-control" required>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Currency</label>
@@ -45,122 +82,66 @@ require 'config/db.php';
                                 <input type="date" name="transaction_date" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label>Description</label>
+                                <label>Description (optional)</label>
                                 <input type="text" name="description" maxlength="255" class="form-control">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label>Category</label>
-                                    <select name="category" id="expense_category" class="form-control" required>
-                                        <option value="">-- Select Category --</option>
-                                        <option value="Operating">Operating</option>
-                                        <option value="Inventory">Inventory</option>
-                                        <option value="Payroll">Payroll</option>
-                                        <option value="Maintenance">Maintenance</option>
-                                        <option value="Utilities">Utilities</option>
-                                        <option value="Marketing">Marketing</option>
-                                        <option value="Misc">Misc</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>Subcategory</label>
-                                    <select name="subcategory" id="expense_subcategory" class="form-control">
-                                        <option value="">-- Select Subcategory --</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Payment Method</label>
-                                <select name="payment_method" class="form-control">
-                                    <option>Cash</option>
-                                    <option>Card</option>
-                                    <option>Digital</option>
-                                    <option>Other</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Vendor</label>
-                                <input type="text" name="vendor" maxlength="100" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Location</label>
-                                <input type="text" name="location" maxlength="150" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select name="status" class="form-control">
-                                    <option>Recorded</option>
-                                    <option>Reviewed</option>
-                                    <option>Categorized</option>
-                                    <option>Reimbursable</option>
-                                </select>
-                            </div>
-                            <div class="form-group form-check">
-                                <input type="checkbox" name="receipt_available" value="1" class="form-check-input" id="receiptChk">
-                                <label class="form-check-label" for="receiptChk">Receipt Available</label>
                             </div>
                             <div class="form-group">
                                 <label>Receipt Image (optional)</label>
                                 <input type="file" name="receipt_image" accept="image/*" class="form-control-file">
-                            </div>
-                            <div class="form-group">
-                                <label>Notes</label>
-                                <textarea name="notes" class="form-control" rows="3"></textarea>
                             </div>
                             <button class="btn btn-primary">Save Expense</button>
                         </form>
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-7">
-                <div class="card">
-                    <div class="card-header"><h4 class="card-title">Recent Expenses</h4></div>
-                    <div class="card-body">
-                        <div class="table-responsive">
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="expenseModal" tabindex="-1" role="dialog" aria-labelledby="expenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Expense</h5>
+                <button type="button" id="expenseModalClose" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height:calc(100vh - 200px);overflow-y:auto;">
+                <form id="expenseModalForm" enctype="multipart/form-data">
+                    <input type="hidden" name="id" id="m_id">
                             <table class="table table-striped table-sm">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
+                                        <th>Category</th>
+                                        <th>Item Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit</th>
+                                        <th>Receipt #</th>
                                         <th>Amount</th>
                                         <th>Currency</th>
                                         <th>Date</th>
-                                        <th>Category</th>
-                                        <th>Subcat</th>
-                                        <th>Method</th>
-                                        <th>Vendor</th>
-                                        <th>Location</th>
-                                        <th>Status</th>
-                                        <th>Receipt</th>
-                                        <th>Notes</th>
+                                        <th>Description</th>
                                         <th>Created By</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                 <?php
-                                $q = $conn->prepare('SELECT id, amount, currency, transaction_date, description, category, subcategory, payment_method, vendor, location, status, receipt_available, receipt_image_path, notes, created_at, created_by FROM expenses ORDER BY id DESC LIMIT 100');
+                                $q = $conn->prepare('SELECT id, category, item_name, quantity, unit, receipt_number, amount, currency, transaction_date, description, created_by FROM expenses ORDER BY id DESC LIMIT 100');
                                 if ($q) {
                                     $q->execute();
                                     $res = $q->get_result();
                                     while ($r = $res->fetch_assoc()) {
                                         echo '<tr>';
                                         echo '<td>' . htmlspecialchars($r['id']) . '</td>';
-                                        echo '<td>' . number_format($r['amount'],2) . '</td>';
+                                        echo '<td>' . htmlspecialchars(ucfirst($r['category'])) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['item_name']) . '</td>';
+                                        echo '<td>' . number_format($r['quantity'], 2) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['unit']) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['receipt_number'] ?: '-') . '</td>';
+                                        echo '<td>' . number_format($r['amount'], 2) . '</td>';
                                         echo '<td>' . htmlspecialchars($r['currency']) . '</td>';
                                         echo '<td>' . htmlspecialchars($r['transaction_date']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['category']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['subcategory']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['payment_method']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['vendor']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['location']) . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['status']) . '</td>';
-                                        if (!empty($r['receipt_image_path'])) {
-                                            echo '<td><a href="' . htmlspecialchars($r['receipt_image_path']) . '" target="_blank">View</a></td>';
-                                        } else {
-                                            echo '<td>' . ($r['receipt_available'] ? 'Yes' : 'No') . '</td>';
-                                        }
-                                        echo '<td>' . htmlspecialchars(substr($r['notes'],0,60)) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['description'] ?: '-') . '</td>';
                                         echo '<td>' . htmlspecialchars($r['created_by']) . '</td>';
                                         // actions: edit (modal), delete
                                         $id = (int)$r['id'];

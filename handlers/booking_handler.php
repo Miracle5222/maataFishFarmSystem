@@ -1,13 +1,14 @@
 <?php
 session_start();
 include '../config/db.php';
+include 'activity_logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Sanitize and validate inputs
+    $customer_id = intval($_POST['customer_id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
     $reservation_type = trim($_POST['reservation_type'] ?? '');
+    $cottage_id = isset($_POST['cottage_id']) ? intval($_POST['cottage_id']) : null;
     $num_guests = intval($_POST['num_guests'] ?? 0);
     $reservation_date = trim($_POST['reservation_date'] ?? '');
     $reservation_time = trim($_POST['reservation_time'] ?? '');
@@ -17,20 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validation
     $errors = [];
 
+    if ($customer_id <= 0) {
+        $errors[] = "Invalid customer session. Please log in again.";
+    }
+
     if (empty($name)) {
-        $errors[] = "Full name is required";
+        $errors[] = "Customer name is required";
     }
 
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Valid email address is required";
-    }
-
-    if (empty($phone)) {
-        $errors[] = "Phone number is required";
-    }
-
-    if (empty($reservation_type) || !in_array($reservation_type, ['dine-in', 'farm visit', 'private-events','cottage'])) {
+    if (empty($reservation_type) || !in_array($reservation_type, ['dine-in', 'farm-visit', 'private-events','cottage'])) {
         $errors[] = "Valid reservation type is required";
+    }
+
+    if ($reservation_type === 'cottage' && (!$cottage_id || $cottage_id <= 0)) {
+        $errors[] = "Please select a cottage";
     }
 
     if ($num_guests < 1 || $num_guests > 200) {
@@ -45,119 +46,175 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Reservation time is required";
     }
 
+    // Validate cottage availability if cottage reservation
+    if ($reservation_type === 'cottage' && $cottage_id) {
+        $cottage_check = $conn->prepare("SELECT available_date, available_date_from, available_date_to, available_time_start, available_time_end, status FROM cottages WHERE id = ?");
+        $cottage_check->bind_param("i", $cottage_id);
+        $cottage_check->execute();
+        $cottage_result = $cottage_check->get_result();
+
+        if ($cottage_result->num_rows === 0) {
+            $errors[] = "Selected cottage does not exist";
+        } else {
+            $cottage = $cottage_result->fetch_assoc();
+
+            if ($cottage['status'] !== 'available') {
+                $errors[] = "Selected cottage is not available";
+            }
+
+            // Check date range - use available_date_from and available_date_to if available
+            $date_from = $cottage['available_date_from'] ?? $cottage['available_date'];
+            $date_to = $cottage['available_date_to'] ?? $cottage['available_date'];
+            
+            $res_date_time = strtotime($reservation_date);
+            $from_time = strtotime($date_from);
+            $to_time = strtotime($date_to);
+            
+            if ($res_date_time < $from_time || $res_date_time > $to_time) {
+                $errors[] = "Cottage is not available on selected date";
+            }
+
+            if ($reservation_time < $cottage['available_time_start'] || $reservation_time > $cottage['available_time_end']) {
+                $errors[] = "Cottage is not available at selected time";
+            }
+        }
+        $cottage_check->close();
+    }
+
     if (!empty($errors)) {
-        header("Location: ../client/booking.php?error=" . urlencode(implode(", ", $errors)));
+        header("Location: ../client/booking.php?type=" . urlencode($reservation_type) . "&error=" . urlencode(implode(", ", $errors)));
         exit;
     }
 
     try {
-        // Check if customer exists by email, if not create new customer
-        $customer_query = "SELECT id FROM customers WHERE email = ? LIMIT 1";
+        // Get customer contact information
+        $customer_query = "SELECT email, phone FROM customers WHERE id = ? LIMIT 1";
         $stmt = $conn->prepare($customer_query);
 
         if (!$stmt) {
             throw new Exception("Customer query prepare failed: " . $conn->error);
         }
 
-        $stmt->bind_param("s", $email);
+        $stmt->bind_param("i", $customer_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        if ($result->num_rows > 0) {
-            $customer = $result->fetch_assoc();
-            $customer_id = $customer['id'];
-            // mark as diner since they made a reservation
-            try {
-                $ctype = 'diner';
-                $upc = $conn->prepare('UPDATE customers SET customer_type = ?, updated_at = NOW() WHERE id = ?');
-                if ($upc) {
-                    $upc->bind_param('si', $ctype, $customer_id);
-                    $upc->execute();
-                    $upc->close();
-                }
-            } catch (Exception $e) {
-                error_log('[booking_handler] Failed to set customer_type: ' . $e->getMessage());
-            }
-        } else {
-            // Extract first and last name from full name
-            $name_parts = explode(' ', $name, 2);
-            $first_name = $name_parts[0];
-            $last_name = isset($name_parts[1]) ? $name_parts[1] : '';
-
-            // Create new customer
-            $insert_customer = "INSERT INTO customers (first_name, last_name, email, phone, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())";
-            $stmt = $conn->prepare($insert_customer);
-
-            if (!$stmt) {
-                throw new Exception("Customer insert prepare failed: " . $conn->error);
-            }
-
-            $stmt->bind_param("ssss", $first_name, $last_name, $email, $phone);
-
-            if (!$stmt->execute()) {
-                throw new Exception("Customer insert failed: " . $stmt->error);
-            }
-
-            $customer_id = $conn->insert_id;
-            // set new customer to diner (made reservation)
-            try {
-                $ctype = 'diner';
-                $upc = $conn->prepare('UPDATE customers SET customer_type = ?, updated_at = NOW() WHERE id = ?');
-                if ($upc) {
-                    $upc->bind_param('si', $ctype, $customer_id);
-                    $upc->execute();
-                    $upc->close();
-                }
-            } catch (Exception $e) {
-                error_log('[booking_handler] Failed to set customer_type for new customer: ' . $e->getMessage());
-            }
+        if ($result->num_rows === 0) {
+            throw new Exception("Customer not found");
         }
+
+        $customer = $result->fetch_assoc();
+        $email = $customer['email'];
+        $phone = $customer['phone'];
+        $stmt->close();
 
         // Generate unique reservation number
         $reservation_number = "RES-" . date('Ymd') . "-" . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        // Check if reservation number already exists
+        // Check if reservation number already exists (ensure results are freed/closed to avoid commands-out-of-sync)
         $check_res_query = "SELECT id FROM reservations WHERE reservation_number = ?";
-        $stmt = $conn->prepare($check_res_query);
-        $stmt->bind_param("s", $reservation_number);
-        $stmt->execute();
-
-        while ($stmt->get_result()->num_rows > 0) {
-            $reservation_number = "RES-" . date('Ymd') . "-" . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        while (true) {
             $stmt = $conn->prepare($check_res_query);
+            if (!$stmt) {
+                $err = trim($conn->error ?: '');
+                error_log('[booking_handler] reservation check prepare failed errno=' . $conn->errno . ' err=' . $err);
+                throw new Exception('Reservation check prepare failed');
+            }
             $stmt->bind_param("s", $reservation_number);
             $stmt->execute();
+            $res = $stmt->get_result();
+            $exists = $res && $res->num_rows > 0;
+            if ($res) $res->free();
+            $stmt->close();
+            if (!$exists) break;
+            // generate a new number and loop
+            $reservation_number = "RES-" . date('Ymd') . "-" . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         }
 
         // Insert reservation
-        $insert_reservation = "INSERT INTO reservations 
-                              (reservation_number, customer_id, reservation_type, num_guests, reservation_date, 
-                               reservation_time, special_requests, status, contact_phone, contact_email, created_at, updated_at) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())";
-
-        $stmt = $conn->prepare($insert_reservation);
-
-        if (!$stmt) {
-            throw new Exception("Prepare failed: " . $conn->error);
+        $hasCottageColumn = false;
+        $colRes = $conn->query("SHOW COLUMNS FROM reservations LIKE 'cottage_id'");
+        if ($colRes) {
+            $hasCottageColumn = $colRes->num_rows > 0;
+            if ($colRes) $colRes->free();
         }
 
-        // Bind parameters: s=string, i=integer
-        // reservation_number(s), customer_id(i), reservation_type(s), num_guests(i), 
-        // reservation_date(s), reservation_time(s), special_requests(s), contact_phone(s), contact_email(s)
-        $stmt->bind_param(
-            "sisisssss",
-            $reservation_number,
-            $customer_id,
-            $reservation_type,
-            $num_guests,
-            $reservation_date,
-            $reservation_time,
-            $special_requests,
-            $phone,
-            $email
-        );
+        if ($hasCottageColumn && $cottage_id !== null) {
+            $insert_reservation = "INSERT INTO reservations
+                                  (reservation_number, customer_id, reservation_type, num_guests, reservation_date,
+                                   reservation_time, special_requests, status, contact_phone, contact_email, cottage_id, created_at, updated_at)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW(), NOW())";
+
+            $stmt = $conn->prepare($insert_reservation);
+            if (!$stmt) {
+                $err = trim($conn->error ?: '');
+                error_log('[booking_handler] Prepare failed (with cottage_id) errno=' . $conn->errno . ' err=' . $err);
+                throw new Exception("Prepare failed (errno=" . $conn->errno . "): " . ($err ?: 'unknown error'));
+            }
+
+            // types: s=reservation_number, i=customer_id, s=reservation_type, i=num_guests,
+            // s=reservation_date, s=reservation_time, s=special_requests, s=phone, s=email, i=cottage_id
+            $stmt->bind_param(
+                "sisisssssi",
+                $reservation_number,
+                $customer_id,
+                $reservation_type,
+                $num_guests,
+                $reservation_date,
+                $reservation_time,
+                $special_requests,
+                $phone,
+                $email,
+                $cottage_id
+            );
+        } else {
+            // either column doesn't exist or no cottage selected; insert without cottage_id
+            $insert_reservation = "INSERT INTO reservations
+                                  (reservation_number, customer_id, reservation_type, num_guests, reservation_date,
+                                   reservation_time, special_requests, status, contact_phone, contact_email, created_at, updated_at)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())";
+
+            $stmt = $conn->prepare($insert_reservation);
+            if (!$stmt) {
+                $err = trim($conn->error ?: '');
+                error_log('[booking_handler] Prepare failed (no cottage_id column) errno=' . $conn->errno . ' err=' . $err);
+                throw new Exception("Prepare failed (errno=" . $conn->errno . "): " . ($err ?: 'unknown error'));
+            }
+
+            // types: s,i,s,i,s,s,s,s,s
+            $stmt->bind_param(
+                "sisisssss",
+                $reservation_number,
+                $customer_id,
+                $reservation_type,
+                $num_guests,
+                $reservation_date,
+                $reservation_time,
+                $special_requests,
+                $phone,
+                $email
+            );
+        }
 
         if ($stmt->execute()) {
+            $reservation_id = $conn->insert_id;
+            // Log the activity
+            $user_id = $customer_id;
+            $user_type = 'customer';
+            if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
+                $user_id = $_SESSION['user_id'];
+                $user_type = $_SESSION['role'];
+            }
+            logActivity(
+                $conn,
+                $user_id,
+                $user_type,
+                'CREATE',
+                'reservation',
+                $reservation_id,
+                $reservation_number,
+                "Created $reservation_type reservation for $name | Guests: $num_guests | Date: $reservation_date | Time: $reservation_time" . ($cottage_id ? " | Cottage ID: $cottage_id" : "")
+            );
             header("Location: ../client/booking.php?success=1");
             exit;
         } else {

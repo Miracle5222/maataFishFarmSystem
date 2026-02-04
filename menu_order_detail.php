@@ -101,17 +101,31 @@ document.getElementById('updateStatusBtn').addEventListener('click', function() 
         body: 'menu_order_id=<?php echo (int)$id; ?>&status=' + encodeURIComponent(newStatus),
         credentials: 'include'
     })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-        if (data.ok) {
-            alert('Status updated to: ' + newStatus);
-            location.reload();
-        } else {
-            alert('Error: ' + (data.msg || 'Update failed'));
+    .then(function(res) {
+        if (!res.ok) {
+            throw new Error('Network response was not ok: ' + res.status);
+        }
+        return res.text();
+    })
+    .then(function(text) {
+        console.log('Response:', text);
+        try {
+            var data = JSON.parse(text);
+            console.log('Parsed data:', data);
+            if (data.ok === true) {
+                alert('Status updated to: ' + newStatus);
+                location.reload();
+            } else {
+                alert('Error: ' + (data.msg || 'Update failed'));
+            }
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            alert('Error parsing response: ' + e.message + '\n\nResponse was: ' + text.substring(0, 100));
         }
     })
     .catch(function(e) {
-        alert('Error: ' + e.message);
+        console.error('Fetch error:', e);
+        alert('Network error: ' + e.message);
     });
 });
 </script>

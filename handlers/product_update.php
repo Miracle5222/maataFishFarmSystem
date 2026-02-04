@@ -1,6 +1,8 @@
 <?php
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../auth_admin.php';
+require __DIR__ . '/activity_logger.php';
+
 header('Content-Type: application/json');
 
 $ok = false;
@@ -83,6 +85,29 @@ $category = trim($_POST['category'] ?? '');
     if ($stmt->affected_rows > 0) {
         $ok = true;
         $msg = 'Product updated successfully';
+        
+        // Log the activity
+        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_type = $_SESSION['role'] ?? 'staff';
+        
+        logActivity(
+            $conn,
+            $user_id,
+            $user_type,
+            'EDIT',
+            'product',
+            $id,
+            $name,
+            "Updated product: $name - Category: " . ucfirst($category) . " | Price: ₱$price | Stock: $stock_quantity",
+            null,
+            [
+                'name' => $name,
+                'category' => $category,
+                'price' => $price,
+                'stock_quantity' => $stock_quantity,
+                'status' => $status
+            ]
+        );
     } else {
         throw new Exception('No changes made');
     }

@@ -29,6 +29,13 @@ if (!$order) {
 }
 
 include 'partials/header.php';
+
+// Helper function to format datetime
+function formatDateTime($datetime) {
+    if (empty($datetime)) return '';
+    $dt = new DateTime($datetime);
+    return $dt->format('M j, Y g:iA'); // e.g., Feb 2, 2026 2:30PM
+}
 ?>
 <main style="padding:40px 20px;">
     <div class="container" style="max-width:900px;">
@@ -49,11 +56,11 @@ include 'partials/header.php';
                 </div>
                 <div>
                     <p style="color:#666; font-size:14px; margin:0 0 4px 0;">Order Date</p>
-                    <p style="color:#333; font-size:16px; margin:0;"><?php echo htmlspecialchars($order['order_date']); ?></p>
+                    <p style="color:#333; font-size:16px; margin:0;"><?php echo htmlspecialchars(formatDateTime($order['order_date'])); ?></p>
                 </div>
                 <div>
                     <p style="color:#666; font-size:14px; margin:0 0 4px 0;">Pickup Date</p>
-                    <p style="color:#333; font-size:16px; margin:0;"><?php echo $order['pickup_date'] ? htmlspecialchars($order['pickup_date']) : 'Not specified'; ?></p>
+                    <p style="color:#333; font-size:16px; margin:0;"><?php echo $order['pickup_date'] ? htmlspecialchars(formatDateTime($order['pickup_date'])) : 'Not specified'; ?></p>
                 </div>
             </div>
 

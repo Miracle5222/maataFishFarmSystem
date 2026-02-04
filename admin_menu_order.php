@@ -135,20 +135,30 @@
         }
 
         container.innerHTML = items.map(function(prod) {
+            var stock = parseInt(prod.stock) || 0;
+            var outOfStock = stock <= 0;
+            var maxAttr = outOfStock ? 0 : stock;
+            var qtyInput = `<input type="number" id="qty_product_${prod.id}" min="1" value="1" max="${maxAttr}" ${outOfStock ? 'disabled' : ''} 
+                                   style="width: 50px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">`;
+            var addButtonClass = outOfStock ? 'btn btn-sm btn-secondary flex-grow-1' : 'btn btn-sm btn-primary flex-grow-1';
+            var addButtonAttrs = outOfStock ? 'disabled' : `onclick="addMenuItemToOrder('product', ${prod.id}, '${escapeHtml(prod.name)}', ${parseFloat(prod.price)}, 'pcs')"`;
+            var outLabel = outOfStock ? `<span style="display:inline-block;padding:4px 8px;border-radius:12px;background:#ffe6e6;color:#c0392b;font-size:12px;margin-left:8px;">Out of stock</span>` : '';
+
             return `
                 <div style="border: 1px solid #eee; border-radius: 6px; overflow: hidden;">
                     <img src="assets/img/products/${prod.image || 'placeholder.png'}" 
                          alt="${escapeHtml(prod.name)}" 
                          style="width: 100%; height: 100px; object-fit: cover; background: #f0f0f0; border-bottom: 1px solid #eee;">
                     <div style="padding: 10px;">
-                        <h6 class="mb-1" style="font-size: 13px;">${escapeHtml(prod.name)}</h6>
-                        <p class="text-muted small mb-2">${escapeHtml(prod.category)}</p>
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                          <h6 class="mb-1" style="font-size: 13px; margin: 0;">${escapeHtml(prod.name)}</h6>
+                          ${outLabel}
+                        </div>
+                        <p class="text-muted small mb-2" style="margin-top:6px;">${escapeHtml(prod.category)}</p>
                         <p class="text-success mb-2" style="font-weight: 700; font-size: 14px;">₱${parseFloat(prod.price).toFixed(2)}</p>
                         <div class="d-flex gap-1">
-                            <input type="number" id="qty_product_${prod.id}" min="1" value="1" max="${parseInt(prod.stock)}" 
-                                   style="width: 50px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-                            <button type="button" class="btn btn-sm btn-primary flex-grow-1" 
-                                    onclick="addMenuItemToOrder('product', ${prod.id}, '${escapeHtml(prod.name)}', ${parseFloat(prod.price)}, 'pcs')">Add</button>
+                            ${qtyInput}
+                            <button type="button" class="${addButtonClass}" ${addButtonAttrs}>${outOfStock ? 'Unavailable' : 'Add'}</button>
                         </div>
                     </div>
                 </div>

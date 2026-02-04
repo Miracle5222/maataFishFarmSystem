@@ -8,21 +8,29 @@ if (empty($_SESSION['client_id'])) {
 }
 
 $cid = (int) $_SESSION['client_id'];
+
+// Check if customer has verified government ID
+$stmt = $conn->prepare('SELECT government_id_verified, first_name, last_name, email, phone, address FROM customers WHERE id = ? LIMIT 1');
+$stmt->bind_param('i', $cid);
+$stmt->execute();
+$result = $stmt->get_result();
+$customer_data = $result->fetch_assoc();
+$stmt->close();
+
+// Redirect to verification page if ID not verified
+if (!$customer_data || $customer_data['government_id_verified'] != 1) {
+    header('Location: id_verification.php?redirect=cart');
+    exit;
+}
+
 $prefill_name = '';
 $prefill_contact = '';
 $prefill_address = '';
 
-$s = $conn->prepare('SELECT first_name, last_name, email, phone, address FROM customers WHERE id = ? LIMIT 1');
-if ($s) {
-    $s->bind_param('i', $cid);
-    $s->execute();
-    $r = $s->get_result();
-    if ($r && $row = $r->fetch_assoc()) {
-        $prefill_name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
-        $prefill_contact = $row['phone'] ?: $row['email'];
-            $prefill_address = $row['address'] ?: '';
-    }
-    $s->close();
+if ($customer_data) {
+    $prefill_name = trim(($customer_data['first_name'] ?? '') . ' ' . ($customer_data['last_name'] ?? ''));
+    $prefill_contact = $customer_data['phone'] ?: $customer_data['email'];
+    $prefill_address = $customer_data['address'] ?: '';
 }
 
 include 'partials/header.php';
@@ -68,8 +76,8 @@ include 'partials/header.php';
                             </div>
 
                             <div>
-                                <label style="display:block; margin-bottom:6px; font-weight:600; color:#333;">Pickup Date *</label>
-                                <input type="date" name="pickup_date" class="form-control" required style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                                <label style="display:block; margin-bottom:6px; font-weight:600; color:#333;">Pickup Date & Time *</label>
+                                <input type="datetime-local" name="pickup_date" class="form-control" required style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                             </div>
 
                             <input type="hidden" name="cart" id="cartPayload">
@@ -171,7 +179,7 @@ include 'partials/header.php';
 
             var infoDiv = document.createElement('div');
             infoDiv.style.flex = '1';
-            infoDiv.innerHTML = '<strong style="font-size:15px; color:#233;">' + escapeHtml(item.name) + '</strong><br><small style="color:#666;">₱' + item.unit_price.toFixed(2) + ' / ' + escapeHtml(item.unit) + '</small>';
+            infoDiv.innerHTML = '<strong style="font-size:15px; color:#233;">' + escapeHtml(item.name) + '</strong><br><small style="color:#666;">₱' + item.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / ' + escapeHtml(item.unit) + '</small>';
 
             var qtyDiv = document.createElement('div');
             qtyDiv.style.display = 'flex';
@@ -200,7 +208,7 @@ include 'partials/header.php';
             var priceDiv = document.createElement('div');
             priceDiv.style.textAlign = 'right';
             priceDiv.style.minWidth = '100px';
-            priceDiv.innerHTML = '<strong style="font-size:16px; color:#27ae60;">₱' + item.subtotal.toFixed(2) + '</strong><br><small style="color:#999;">x' + item.quantity + '</small>';
+            priceDiv.innerHTML = '<strong style="font-size:16px; color:#27ae60;">₱' + item.subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong><br><small style="color:#999;">x' + item.quantity + '</small>';
 
             var removeBtn = document.createElement('button');
             removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -223,7 +231,7 @@ include 'partials/header.php';
         totalDiv.style.fontWeight = '700';
         totalDiv.style.textAlign = 'right';
         totalDiv.style.color = '#27ae60';
-        totalDiv.innerHTML = 'Cart Total: ₱' + total.toFixed(2);
+        totalDiv.innerHTML = 'Cart Total: ₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         area.appendChild(totalDiv);
     }
 
@@ -290,15 +298,15 @@ include 'partials/header.php';
                 var el = document.createElement('div');
                 el.style.cssText = 'display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;';
                 var name = escapeHtml(it.name) + ' x' + it.quantity;
-                var price = '₱' + it.subtotal.toFixed(2);
+                var price = '₱' + it.subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 total += it.subtotal;
                 el.innerHTML = '<div style="color:#555;">' + name + '</div><div style="color:#333; font-weight:600;">' + price + '</div>';
                 list.appendChild(el);
             }
         });
         
-        document.getElementById('summarySubtotal').textContent = '₱' + total.toFixed(2);
-        document.getElementById('summaryTotal').textContent = '₱' + total.toFixed(2);
+        document.getElementById('summarySubtotal').textContent = '₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('summaryTotal').textContent = '₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
     document.getElementById('checkoutNow').addEventListener('click', function() {
@@ -330,11 +338,11 @@ include 'partials/header.php';
             return;
         }
         
-        // Convert ONLY selected cart items to format expected by handler (use fish_id)
+        // Convert ONLY selected cart items to format expected by handler (use item_id and item_type)
         var cartData = cartItems.filter(function(it) {
             return selectedIds.has(it.id);
         }).map(function(it) {
-            return { id: it.fish_id, name: it.name, price: it.unit_price, unit: it.unit, qty: it.quantity };
+            return { item_id: it.item_id, item_type: it.item_type, name: it.name, price: it.unit_price, unit: it.unit, qty: it.quantity };
         });
         document.getElementById('cartPayload').value = JSON.stringify(cartData);
         // Clear cart from display after submission

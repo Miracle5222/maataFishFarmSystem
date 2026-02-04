@@ -3,6 +3,14 @@
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
 
+<?php
+function formatDateTime($datetime) {
+    if (empty($datetime)) return '';
+    $dt = new DateTime($datetime);
+    return $dt->format('M j, Y g:iA'); // e.g., Feb 2, 2026 2:30PM
+}
+?>
+
 <!-- [ Layout content ] Start -->
 <div class="layout-content">
     <!-- [ content ] Start -->
@@ -87,7 +95,7 @@
                             <td><strong>₱<?php echo number_format($o['total_amount'], 2); ?></strong></td>
                             <td><span style="background-color:<?php echo $statusBg; ?>; color:<?php echo $statusColor; ?>; padding:6px 12px; border-radius:4px; font-weight:600; font-size:12px;"><?php echo htmlspecialchars(ucfirst($o['status'])); ?></span></td>
                             <td><?php echo htmlspecialchars(date('M d, Y', strtotime($o['order_date']))); ?></td>
-                            <td><?php echo $o['pickup_date'] ? htmlspecialchars($o['pickup_date']) : '-'; ?></td>
+                            <td><?php echo $o['pickup_date'] ? htmlspecialchars(formatDateTime($o['pickup_date'])) : '-'; ?></td>
                             <td class="text-right">
                                 <button class="btn btn-sm btn-icon btn-outline-info view-order" 
                                     data-id="<?php echo (int)$o['id']; ?>"
@@ -97,7 +105,7 @@
                                     data-total="<?php echo number_format($o['total_amount'], 2); ?>"
                                     data-status="<?php echo htmlspecialchars($o['status']); ?>"
                                     data-order-date="<?php echo htmlspecialchars(date('M d, Y', strtotime($o['order_date']))); ?>"
-                                    data-pickup-date="<?php echo htmlspecialchars($o['pickup_date'] ?? ''); ?>"
+                                    data-pickup-date="<?php echo htmlspecialchars($o['pickup_date'] ? formatDateTime($o['pickup_date']) : ''); ?>"
                                     title="View"><i class="feather icon-eye"></i></button>
                                 <button class="btn btn-sm btn-icon btn-outline-danger delete-order" 
                                     data-id="<?php echo (int)$o['id']; ?>"
@@ -167,6 +175,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeViewOrder()">Close</button>
+                <button type="button" id="printReceiptBtn" class="btn btn-primary" style="display:none;" onclick="openReceipt()">Print Receipt</button>
             </div>
         </div>
     </div>
@@ -255,13 +264,20 @@ function loadOrderDetails(orderId) {
             var j = typeof resp === 'string' ? JSON.parse(resp) : resp;
             if (j.ok && j.data) {
                 var order = j.data;
+                        var orderId = order.id || null;
                 $('#viewOrderNumber').text(order.order_number);
                 $('#viewCustomerName').text(order.customer_name);
                 $('#viewCustomerEmail').text(order.customer_email);
-                $('#viewTotalAmount').text('₱' + parseFloat(order.total_amount).toFixed(2));
+                $('#viewTotalAmount').text('₱' + parseFloat(order.total_amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
                 $('#viewStatus').text(order.status.charAt(0).toUpperCase() + order.status.slice(1));
                 $('#viewOrderDate').text(order.order_date);
                 $('#viewPickupDate').text(order.pickup_date || '-');
+                // Show print button only when status is paid
+                if (order.status && order.status.toLowerCase() === 'paid' && orderId) {
+                    $('#printReceiptBtn').show().data('order-id', orderId);
+                } else {
+                    $('#printReceiptBtn').hide().removeData('order-id');
+                }
                 
                 var html = '';
                 if (j.items && j.items.length) {
@@ -269,8 +285,8 @@ function loadOrderDetails(orderId) {
                         html += '<tr>';
                         html += '<td>' + item.item_name + '</td>';
                         html += '<td>' + item.quantity + '</td>';
-                        html += '<td>₱' + parseFloat(item.unit_price).toFixed(2) + '</td>';
-                        html += '<td>₱' + parseFloat(item.subtotal).toFixed(2) + '</td>';
+                        html += '<td>₱' + parseFloat(item.unit_price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</td>';
+                        html += '<td>₱' + parseFloat(item.subtotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</td>';
                         html += '</tr>';
                     });
                 } else {
@@ -292,5 +308,12 @@ function openViewOrder() {
 
 function closeViewOrder() {
     $('#viewOrderModal').hide();
+}
+
+function openReceipt() {
+    var id = $('#printReceiptBtn').data('order-id');
+    if (!id) return;
+    var url = 'orders_receipt.php?id=' + encodeURIComponent(id);
+    window.open(url, '_blank');
 }
 </script>

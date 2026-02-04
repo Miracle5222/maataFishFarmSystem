@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/activity_logger.php';
 
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id'])) {
@@ -86,6 +87,19 @@ try {
     
     // Commit transaction
     $conn->commit();
+    
+    // Log the activity
+    $admin_id = $_SESSION['user_id'] ?? 0;
+    logActivity(
+        $conn,
+        $admin_id,
+        'admin',
+        'DELETE',
+        'staff',
+        $staff_id,
+        $staff_name,
+        "Deleted staff member: $staff_name"
+    );
     
     error_log("✓ SUCCESS: Staff member deleted - ID=$staff_id | Name=$staff_name | Linked User ID=$user_id_linked | Deleted by Admin ID=$user_id");
     

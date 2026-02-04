@@ -12,6 +12,50 @@
             </div>
         </div>
 
+        <style>
+        @media print {
+            .btn, .layout-navbar, .layout-sidenav, .layout-footer,
+            .dataTables_length, .dataTables_filter, .dataTables_info, .dataTables_paginate {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            body {
+                margin: 0;
+            }
+            .table-responsive {
+                overflow: visible !important;
+            }
+            .print-header, .print-footer {
+                display: block !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .print-header, .print-footer {
+            display: none;
+        }
+        </style>
+
+        <div class="print-header" style="text-align: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                <img src="assets/img/maataLogo.png" alt="Maata Logo" style="height: 60px; margin-right: 15px;">
+                <div>
+                    <h2 style="margin: 0; color: #27ae60;">Maata Fish Farm</h2>
+                    <p style="margin: 5px 0; font-size: 14px;">Quality Aquaculture Products</p>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #666;">
+                <p><strong>Contact:</strong> 09661337498 | <strong>Address:</strong> New Basak, Dumingag, Zamboanga del Sur</p>
+                <p><strong>Email:</strong> admin@gmail.com | <strong>Website:</strong> https://maatafishfarm.gt.tc/</p>
+            </div>
+            <hr style="border: 1px solid #27ae60; margin: 15px 0;">
+            <h3 style="margin: 10px 0; color: #27ae60;">Expenses Report</h3>
+        </div>
+
         <?php
         require __DIR__ . '/config/db.php';
         
@@ -32,23 +76,23 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Category</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Unit</th>
+                                <th>Receipt #</th>
                                 <th>Amount</th>
                                 <th>Currency</th>
                                 <th>Date</th>
-                                <th>Category</th>
-                                <th>Subcat</th>
-                                <th>Method</th>
-                                <th>Vendor</th>
-                                <th>Location</th>
-                                <th>Status</th>
-                                <th>Receipt</th>
-                                <th>Notes</th>
+                                <th>Description</th>
+                                <th class="no-print">Receipt</th>
                                 <th>Created By</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                         <?php
-                        $q = $conn->prepare('SELECT id, amount, currency, transaction_date, category, subcategory, payment_method, vendor, location, status, receipt_available, receipt_image_path, notes, created_by FROM expenses ORDER BY id DESC');
+                        $q = $conn->prepare('SELECT id, category, item_name, quantity, unit, receipt_number, amount, currency, transaction_date, description, receipt_image_path, created_by FROM expenses ORDER BY id DESC');
                         
                         if (!$q) {
                             echo '<tr><td colspan="13" class="alert alert-danger">Query error: ' . htmlspecialchars($conn->error) . '</td></tr>';
@@ -61,22 +105,28 @@
                                     while ($r = $res->fetch_assoc()) {
                                         echo '<tr>';
                                         echo '<td>' . htmlspecialchars($r['id'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars(ucfirst($r['category'] ?? '')) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['item_name'] ?? '') . '</td>';
+                                        echo '<td>' . number_format((float)($r['quantity'] ?? 0), 2) . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['unit'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['receipt_number'] ?? '-') . '</td>';
                                         echo '<td>' . number_format((float)($r['amount'] ?? 0), 2) . '</td>';
                                         echo '<td>' . htmlspecialchars($r['currency'] ?? 'PHP') . '</td>';
                                         echo '<td>' . htmlspecialchars($r['transaction_date'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['category'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['subcategory'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['payment_method'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['vendor'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['location'] ?? '') . '</td>';
-                                        echo '<td>' . htmlspecialchars($r['status'] ?? '') . '</td>';
+                                        echo '<td>' . htmlspecialchars($r['description'] ?? '-') . '</td>';
                                         if (!empty($r['receipt_image_path'])) {
-                                            echo '<td><a href="' . htmlspecialchars($r['receipt_image_path']) . '" target="_blank">View</a></td>';
+                                            echo '<td class="no-print"><a href="' . htmlspecialchars($r['receipt_image_path']) . '" target="_blank">View</a></td>';
                                         } else {
-                                            echo '<td>' . ($r['receipt_available'] ? 'Yes' : 'No') . '</td>';
+                                            echo '<td class="no-print">-</td>';
                                         }
-                                        echo '<td>' . htmlspecialchars(substr($r['notes'] ?? '', 0, 80)) . '</td>';
                                         echo '<td>' . htmlspecialchars($r['created_by'] ?? '') . '</td>';
+                                        echo '<td>';
+                                        echo '<a href="expenses.php" class="btn btn-sm btn-outline-primary mr-1">Edit</a>';
+                                        echo '<form method="post" action="handlers/expenses_delete.php" style="display:inline;" onsubmit="return confirm(\'Delete this expense?\');">';
+                                        echo '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '">';
+                                        echo '<button class="btn btn-sm btn-outline-danger">Delete</button>';
+                                        echo '</form>';
+                                        echo '</td>';
                                         echo '</tr>';
                                     }
                                 } else {
@@ -89,6 +139,25 @@
                         </tbody>
                     </table>
 
+                </div>
+            </div>
+        </div>
+
+        <div class="print-footer" style="margin-top: 30px;">
+            <div style="display: flex; gap: 100px;">
+                <div style="text-align: left;">
+                    <p><strong>Prepared by:</strong></p>
+                    <p style="margin-top: 40px; border-top: 1px solid #000; width: 200px;"></p>
+                    <p style="font-size: 10px; color: #666; margin-top: 5px;">(Signature over printed name)</p>
+                    <!-- <p style="margin-top: 10px;"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Staff'); ?></p> -->
+                    <p style="font-size: 12px; color: #666;">Date: <?php echo date('M j, Y'); ?></p>
+                </div>
+                <div style="text-align: left;">
+                    <p><strong>Approved by:</strong></p>
+                    <p style="margin-top: 40px; border-top: 1px solid #000; width: 200px;"></p>
+                    <p style="font-size: 10px; color: #666; margin-top: 5px;">(Signature over printed name)</p>
+            
+                    <p style="font-size: 12px; color: #666;">Owner</p>
                 </div>
             </div>
         </div>

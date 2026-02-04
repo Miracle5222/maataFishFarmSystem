@@ -60,6 +60,9 @@ $role = $_SESSION['role'] ?? '';
             <li class="sidenav-item"><a href="cancelled_reservations.php" class="sidenav-link">
                     <div>Cancelled Reservation</div>
                 </a></li>
+            <li class="sidenav-item"><a href="cottage_management.php" class="sidenav-link">
+                    <div>Cottage Management</div>
+                </a></li>
 
         </ul>
     </li>
@@ -77,6 +80,12 @@ $role = $_SESSION['role'] ?? '';
                 </a></li>
             <li class="sidenav-item"><a href="reports_expenses.php" class="sidenav-link">
                     <div>View Expenses</div>
+                </a></li>
+            <li class="sidenav-item"><a href="reports_transactions.php" class="sidenav-link">
+                    <div>Transactions</div>
+                </a></li>
+            <li class="sidenav-item"><a href="activity_logs.php" class="sidenav-link">
+                    <div>Activity Logs</div>
                 </a></li>
             <!-- <li class="sidenav-item"><a href="reports_revenue.php" class="sidenav-link">
                     <div>Revenue Report</div>
@@ -143,6 +152,9 @@ $role = $_SESSION['role'] ?? '';
             <li class="sidenav-item"><a href="customers_list.php" class="sidenav-link">
                     <div>Customer List</div>
                 </a></li>
+            <li class="sidenav-item"><a href="customer_id_verification.php" class="sidenav-link">
+                    <div>ID Verification</div>
+                </a></li>
           
       
         </ul>
@@ -178,11 +190,21 @@ $role = $_SESSION['role'] ?? '';
         </ul>
     </li>
     <!-- Expenses (visible to staff, manager, admin) -->
-    <?php if (!empty($role)): ?>
+   
     <li class="sidenav-item">
         <a href="expenses.php" class="sidenav-link">
             <i class="sidenav-icon feather icon-file-text"></i>
             <div>Expenses</div>
+        </a>
+    </li>
+ 
+
+    <!-- Entrance Fee (visible to admin, staff, and manager) -->
+    <?php if (strtolower($role) === 'admin' || strtolower($role) === 'staff' || strtolower($role) === 'manager'): ?>
+    <li class="sidenav-item">
+        <a href="entrance_fee.php" class="sidenav-link">
+            <i class="sidenav-icon feather icon-credit-card"></i>
+            <div>Entrance Fee</div>
         </a>
     </li>
     <?php endif; ?>

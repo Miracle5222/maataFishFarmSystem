@@ -1,0 +1,37 @@
+POST data: Array
+(
+    [action] => add
+    [cottage_number] => 6
+    [price] => 600
+    [slots] => Array
+        (
+            [0] => Array
+                (
+                    [date] => 2026-01-28
+                    [start_time] => 01:51
+                    [end_time] => 13:51
+                    [status] => available
+                )
+
+            [1] => Array
+                (
+                    [date] => 2026-01-29
+                    [start_time] => 01:51
+                    [end_time] => 13:51
+                    [status] => available
+                )
+
+        )
+
+)
+
+POST data: Array
+(
+    [action] => add
+    [cottage_number] => 1
+    [price] => 500
+    [date_range] => 
+    [start_time] => 02:15
+    [end_time] => 14:15
+)
+

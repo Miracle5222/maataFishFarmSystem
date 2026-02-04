@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/activity_logger.php';
 
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id'])) {
@@ -194,6 +195,19 @@ try {
     
     // Commit transaction
     $conn->commit();
+    
+    // Log the activity
+    $admin_id = $_SESSION['user_id'] ?? 0;
+    logActivity(
+        $conn,
+        $admin_id,
+        'admin',
+        'CREATE',
+        'staff',
+        $new_user_id,
+        $full_name,
+        "Created staff member: $full_name - Position: $position - Role: $role"
+    );
     
     // Log the action
     error_log("✓ SUCCESS: New staff member added - ID=$new_user_id | Name=$full_name | Username=$username | Email=$email | Position=$position | Role=$role | Added by Admin ID=$user_id");

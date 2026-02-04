@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 13, 2026 at 06:00 PM
+-- Generation Time: Jan 28, 2026 at 08:43 AM
 -- Server version: 10.4.25-MariaDB
 -- PHP Version: 7.4.30
 
@@ -81,6 +81,7 @@ CREATE TABLE `calendar_bookings` (
 
 CREATE TABLE `carts` (
   `id` int(11) NOT NULL,
+  `item_type` enum('fish','product') DEFAULT 'fish',
   `fish_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT 1,
   `unit_price` decimal(10,2) NOT NULL,
@@ -88,6 +89,177 @@ CREATE TABLE `carts` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `customer_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cottages`
+--
+
+CREATE TABLE `cottages` (
+  `id` int(11) NOT NULL,
+  `cottage_number` varchar(50) NOT NULL,
+  `description` text DEFAULT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `status` enum('available','unavailable') DEFAULT 'available',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `available_date` date NOT NULL,
+  `available_date_from` date DEFAULT NULL,
+  `available_date_to` date DEFAULT NULL,
+  `available_time_start` time NOT NULL,
+  `available_time_end` time NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `cottages`
+--
+
+INSERT INTO `cottages` (`id`, `cottage_number`, `description`, `price`, `status`, `created_at`, `updated_at`, `available_date`, `available_date_from`, `available_date_to`, `available_time_start`, `available_time_end`) VALUES
+(18, '1', NULL, '500.00', 'available', '2026-01-27 18:29:51', '2026-01-28 06:51:59', '2026-01-28', '2026-01-28', '2026-02-13', '02:29:00', '14:29:00'),
+(19, '2', NULL, '500.00', 'available', '2026-01-27 18:43:47', '2026-01-28 06:52:07', '2026-01-28', '2026-01-28', '2026-01-31', '02:43:00', '17:43:00'),
+(22, '3', NULL, '500.00', 'available', '2026-01-27 18:54:40', '2026-01-28 06:52:14', '2026-01-28', '2026-01-28', '2026-01-31', '10:51:00', '17:51:00'),
+(23, '4', NULL, '2000.00', 'available', '2026-01-27 19:01:38', '2026-01-28 06:52:21', '2026-01-28', '2026-01-28', '2026-01-31', '03:01:00', '17:01:00'),
+(24, '5', NULL, '2000.00', 'available', '2026-01-28 02:06:09', '2026-01-28 06:52:30', '2026-01-28', '2026-01-28', '2026-01-31', '10:05:00', '22:05:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cottage_availability`
+--
+
+CREATE TABLE `cottage_availability` (
+  `id` int(11) NOT NULL,
+  `cottage_id` int(11) NOT NULL,
+  `available_date` date NOT NULL,
+  `available_time_start` time NOT NULL,
+  `available_time_end` time NOT NULL,
+  `status` enum('available','booked','unavailable') DEFAULT 'available',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `cottage_availability`
+--
+
+INSERT INTO `cottage_availability` (`id`, `cottage_id`, `available_date`, `available_time_start`, `available_time_end`, `status`, `created_at`) VALUES
+(268, 19, '2026-01-28', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:07'),
+(269, 19, '2026-01-28', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:07'),
+(270, 19, '2026-01-28', '18:52:00', '22:53:00', 'available', '2026-01-28 06:52:08'),
+(271, 19, '2026-01-29', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(272, 19, '2026-01-29', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(273, 19, '2026-01-29', '18:52:00', '22:53:00', 'available', '2026-01-28 06:52:08'),
+(274, 19, '2026-01-30', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(275, 19, '2026-01-30', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(276, 19, '2026-01-30', '18:52:00', '22:53:00', 'available', '2026-01-28 06:52:08'),
+(277, 19, '2026-01-31', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(278, 19, '2026-01-31', '02:43:00', '17:43:00', 'available', '2026-01-28 06:52:08'),
+(279, 19, '2026-01-31', '18:52:00', '22:53:00', 'available', '2026-01-28 06:52:08'),
+(280, 22, '2026-01-28', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(281, 22, '2026-01-28', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(282, 22, '2026-01-28', '18:01:00', '21:01:00', 'available', '2026-01-28 06:52:14'),
+(283, 22, '2026-01-29', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(284, 22, '2026-01-29', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(285, 22, '2026-01-29', '18:01:00', '21:01:00', 'available', '2026-01-28 06:52:14'),
+(286, 22, '2026-01-30', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(287, 22, '2026-01-30', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(288, 22, '2026-01-30', '18:01:00', '21:01:00', 'available', '2026-01-28 06:52:14'),
+(289, 22, '2026-01-31', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(290, 22, '2026-01-31', '10:51:00', '17:51:00', 'available', '2026-01-28 06:52:14'),
+(291, 22, '2026-01-31', '18:01:00', '21:01:00', 'available', '2026-01-28 06:52:14'),
+(292, 23, '2026-01-28', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(293, 23, '2026-01-28', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(294, 23, '2026-01-28', '18:01:00', '22:58:00', 'available', '2026-01-28 06:52:21'),
+(295, 23, '2026-01-29', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(296, 23, '2026-01-29', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(297, 23, '2026-01-29', '18:01:00', '22:58:00', 'available', '2026-01-28 06:52:21'),
+(298, 23, '2026-01-30', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(299, 23, '2026-01-30', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(300, 23, '2026-01-30', '18:01:00', '22:58:00', 'available', '2026-01-28 06:52:21'),
+(301, 23, '2026-01-31', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(302, 23, '2026-01-31', '03:01:00', '17:01:00', 'available', '2026-01-28 06:52:21'),
+(303, 23, '2026-01-31', '18:01:00', '22:58:00', 'available', '2026-01-28 06:52:21'),
+(304, 24, '2026-01-28', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(305, 24, '2026-01-28', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(306, 24, '2026-01-29', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(307, 24, '2026-01-29', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(308, 24, '2026-01-30', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(309, 24, '2026-01-30', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(310, 24, '2026-01-31', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(311, 24, '2026-01-31', '10:05:00', '22:05:00', 'available', '2026-01-28 06:52:30'),
+(312, 18, '2026-01-28', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(313, 18, '2026-01-28', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(314, 18, '2026-01-29', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(315, 18, '2026-01-29', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(316, 18, '2026-01-30', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(317, 18, '2026-01-30', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(318, 18, '2026-01-31', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(319, 18, '2026-01-31', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(320, 18, '2026-02-01', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(321, 18, '2026-02-01', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(322, 18, '2026-02-02', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(323, 18, '2026-02-02', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(324, 18, '2026-02-03', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(325, 18, '2026-02-03', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(326, 18, '2026-02-04', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(327, 18, '2026-02-04', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(328, 18, '2026-02-05', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(329, 18, '2026-02-05', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(330, 18, '2026-02-06', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(331, 18, '2026-02-06', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(332, 18, '2026-02-07', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(333, 18, '2026-02-07', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(334, 18, '2026-02-08', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(335, 18, '2026-02-08', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(336, 18, '2026-02-09', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(337, 18, '2026-02-09', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(338, 18, '2026-02-10', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(339, 18, '2026-02-10', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(340, 18, '2026-02-11', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(341, 18, '2026-02-11', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(342, 18, '2026-02-12', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(343, 18, '2026-02-12', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(344, 18, '2026-02-13', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31'),
+(345, 18, '2026-02-13', '02:29:00', '14:29:00', 'available', '2026-01-28 07:18:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cottage_images`
+--
+
+CREATE TABLE `cottage_images` (
+  `id` int(11) NOT NULL,
+  `cottage_id` int(11) NOT NULL,
+  `filename` varchar(500) NOT NULL,
+  `is_main` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `cottage_images`
+--
+
+INSERT INTO `cottage_images` (`id`, `cottage_id`, `filename`, `is_main`, `created_at`) VALUES
+(1, 5, '69718de048938_OIP (1).jpg', 0, '2026-01-22 02:39:28'),
+(2, 5, '69718de05b39b_a-beach-cottage-tony-magdaraog.jpg', 0, '2026-01-22 02:39:28'),
+(3, 5, '69718de064771_OIP.jpg', 0, '2026-01-22 02:39:28'),
+(4, 4, '69718de9ebbea_OIP.jpg', 0, '2026-01-22 02:39:37'),
+(5, 6, '6978d77be9968_lumpia-2.webp', 0, '2026-01-27 15:19:23'),
+(6, 7, '6978dccf672a8_544091131_1469522924248069_6146328607898368563_n.jpg', 0, '2026-01-27 15:42:07'),
+(7, 8, '6978edc1c67c1_544091131_1469522924248069_6146328607898368563_n.jpg', 0, '2026-01-27 16:54:25'),
+(8, 9, '6978f83cf1617_a-beach-cottage-tony-magdaraog.jpg', 0, '2026-01-27 17:39:08'),
+(9, 10, '6978f8ef6558f_lumpia-2.webp', 0, '2026-01-27 17:42:07'),
+(10, 11, '6978f96c367d2_544091131_1469522924248069_6146328607898368563_n.jpg', 0, '2026-01-27 17:44:12'),
+(11, 13, '6978fb49450cc_lumpia-2.webp', 0, '2026-01-27 17:52:09'),
+(12, 17, '697901a621387_OIP (1).jpg', 0, '2026-01-27 18:19:18'),
+(13, 17, '697901a623b73_a-beach-cottage-tony-magdaraog.jpg', 0, '2026-01-27 18:19:18'),
+(14, 17, '697901a625355_OIP.jpg', 0, '2026-01-27 18:19:18'),
+(15, 18, '6979041f6370b_544091131_1469522924248069_6146328607898368563_n.jpg', 0, '2026-01-27 18:29:51'),
+(16, 19, '69790763cc95e_OIP.jpg', 0, '2026-01-27 18:43:47'),
+(17, 22, '697909f10dba9_OIP (1).jpg', 0, '2026-01-27 18:54:41'),
+(18, 23, '69790b92137ce_lumpia-2.webp', 0, '2026-01-27 19:01:38'),
+(19, 24, '69796f111780e_lumpia-2.webp', 0, '2026-01-28 02:06:09');
 
 -- --------------------------------------------------------
 
@@ -107,7 +279,10 @@ CREATE TABLE `customers` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `password` varchar(45) DEFAULT NULL,
-  `customer_type` enum('online_customer','diner') DEFAULT 'online_customer'
+  `customer_type` enum('online_customer','diner') DEFAULT 'online_customer',
+  `government_id_image` varchar(500) DEFAULT NULL,
+  `government_id_verified` tinyint(1) DEFAULT 0,
+  `id_verification_date` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -122,14 +297,15 @@ INSERT INTO `customers` (`id`, `first_name`, `last_name`, `email`, `phone`, `add
 (5, 'xam', 'maagad', 'xam@gmail.com', '09454739384', 'purok 4', NULL, NULL, '2026-01-13 05:42:24', '2026-01-13 05:42:24', '2032dabadb4325aa4893c30e1fa284579a2e48fd', 'online_customer'),
 (6, 'xam', 'maagad', 'xammaagad@gmail.com', '09454939684', 'purok 2', NULL, NULL, '2026-01-13 05:45:56', '2026-01-13 05:45:56', '2032dabadb4325aa4893c30e1fa284579a2e48fd', 'online_customer'),
 (7, 'xammaagad', '', 'xamaagad@gmail.com', '09454739384', NULL, NULL, NULL, '2026-01-13 05:47:41', '2026-01-13 05:47:41', NULL, 'diner'),
-(8, 'roneil', 'bansas', 'roneilbansas5222@gmail.com', '09454739384', NULL, NULL, NULL, '2026-01-13 05:53:16', '2026-01-13 05:53:16', NULL, 'diner'),
+(8, 'roneil', 'bansas', 'roneilbansas5222@gmail.com', '09454739384', NULL, NULL, NULL, '2026-01-13 05:53:16', '2026-01-21 18:20:50', '2032dabadb4325aa4893c30e1fa284579a2e48fd', 'diner'),
 (9, 'roger', 'roger', 'roger@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 06:01:22', '2026-01-13 06:01:22', 'f7c3bc1d808e04732adf679965ccc34ca7ae3441', 'online_customer'),
 (10, 'roger', 'roger', 'roger@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 06:01:55', '2026-01-13 06:01:55', 'f7c3bc1d808e04732adf679965ccc34ca7ae3441', 'online_customer'),
 (11, 'roger', 'roger', 'roger@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 06:03:53', '2026-01-13 06:03:53', 'f7c3bc1d808e04732adf679965ccc34ca7ae3441', 'online_customer'),
 (12, 'xam', 'xam', 'xam@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 06:09:38', '2026-01-13 06:09:38', '7c4a8d09ca3762af61e59520943dc26494f8941b', 'online_customer'),
 (13, 'xam', 'xa', 'xam2@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 16:26:42', '2026-01-13 16:26:42', 'ccbe91b1f19bd31a1365363870c0eec2296a61c1', 'online_customer'),
 (14, 'xam', 'xam', 'xamss@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 16:36:43', '2026-01-13 16:36:43', '601f1889667efaebb33b8c12572835da3f027f78', 'online_customer'),
-(15, 'anderson', 'anderson', 'anderson123@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 16:58:13', '2026-01-13 16:58:43', '601f1889667efaebb33b8c12572835da3f027f78', 'online_customer');
+(15, 'anderson', 'anderson', 'anderson123@gmail.com', '09454739384', 'Purok 2, Pob. Mahayag Zamboanga del Sur', NULL, NULL, '2026-01-13 16:58:13', '2026-01-13 16:58:43', '601f1889667efaebb33b8c12572835da3f027f78', 'online_customer'),
+(16, 'mateo', 'smith', 'mateo@gmail.com', '09454739384', '', NULL, NULL, '2026-01-21 16:12:52', '2026-01-21 16:12:52', '2032dabadb4325aa4893c30e1fa284579a2e48fd', 'online_customer');
 
 -- --------------------------------------------------------
 
@@ -144,6 +320,10 @@ CREATE TABLE `expenses` (
   `transaction_date` date NOT NULL,
   `description` varchar(255) DEFAULT NULL COMMENT 'Brief description of what was purchased',
   `category` varchar(50) DEFAULT NULL COMMENT 'e.g., Food, Transport, Utilities, Unknown',
+  `item_name` varchar(255) NOT NULL,
+  `quantity` decimal(10,2) NOT NULL,
+  `unit` varchar(50) NOT NULL,
+  `receipt_number` varchar(100) DEFAULT NULL,
   `subcategory` varchar(50) DEFAULT NULL COMMENT 'More specific classification',
   `payment_method` enum('Cash','Card','Digital','Other') DEFAULT 'Other',
   `vendor` varchar(100) DEFAULT NULL,
@@ -161,8 +341,34 @@ CREATE TABLE `expenses` (
 -- Dumping data for table `expenses`
 --
 
-INSERT INTO `expenses` (`id`, `amount`, `currency`, `transaction_date`, `description`, `category`, `subcategory`, `payment_method`, `vendor`, `location`, `status`, `receipt_available`, `receipt_image_path`, `notes`, `created_at`, `updated_at`, `created_by`) VALUES
-(3, '250.00', 'PHP', '2026-01-07', 'kaho', 'Maintenance', 'Equipment', 'Card', 'nadf', 'purok 2', 'Recorded', 1, 'assets/img/receipts/rcpt_695d53df1ee68.png', '', '2026-01-06 18:26:39', '2026-01-06 18:49:17', 'admin');
+INSERT INTO `expenses` (`id`, `amount`, `currency`, `transaction_date`, `description`, `category`, `item_name`, `quantity`, `unit`, `receipt_number`, `subcategory`, `payment_method`, `vendor`, `location`, `status`, `receipt_available`, `receipt_image_path`, `notes`, `created_at`, `updated_at`, `created_by`) VALUES
+(4, '250.00', 'PHP', '2026-01-23', '', 'ingredients', 'lamas', '4.00', 'kg', '4124', NULL, 'Other', NULL, NULL, 'Recorded', 0, NULL, NULL, '2026-01-23 07:10:54', '2026-01-23 07:10:54', 'admin'),
+(5, '4.00', 'PHP', '2026-01-23', 'gf', 'ingredients', 'lamas', '24.00', 'kg', '4124s', NULL, 'Other', NULL, NULL, 'Recorded', 0, 'assets/img/receipts/rcpt_697321507de21.jpg', NULL, '2026-01-23 07:20:48', '2026-01-23 07:20:48', 'admin'),
+(6, '250.00', 'PHP', '2026-01-23', 'kahooy', 'labor', 'sd', '2.00', 'pcs', '4124', NULL, 'Other', NULL, NULL, 'Recorded', 0, 'assets/img/receipts/rcpt_697322abe16ff.jpg', NULL, '2026-01-23 07:26:35', '2026-01-23 07:26:35', 'admin');
+
+-- --------------------------------------------------------
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_logs`
+--
+
+CREATE TABLE `activity_logs` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `user_type` enum('admin','staff') NOT NULL,
+  `activity_type` varchar(100) NOT NULL,
+  `entity_type` varchar(50) NOT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `entity_name` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `old_values` json DEFAULT NULL,
+  `new_values` json DEFAULT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ip_address` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -222,9 +428,9 @@ CREATE TABLE `fish_species` (
 --
 
 INSERT INTO `fish_species` (`fish_id`, `name`, `local_name`, `price_per_kg`, `stock`, `harvest_schedule`, `description`, `status`, `created_at`, `updated_at`, `image`) VALUES
-(5, 'Tilapia', '', '200.00', 496, '', 'A widely farmed freshwater fish known for its mild flavor, fast growth, and high protein content, making it a staple in global aquaculture. It is hardy, adaptable to different water conditions, and primarily herbivorous, feeding on algae and plants. While popular for food, tilapia can become invasive if introduced into non-native ecosystems, outcompeting local species.', 'available', '2025-12-20 15:37:31', '2026-01-07 11:29:06', '1766245871_813cc3af268a.jpg'),
-(6, 'Catfish (Hito)', '', '200.00', 489, '', 'A bottom-feeding fish often identified by its long, whisker-like barbels around the mouth, which it uses to sense food in murky water. It has smooth, scaleless skin and comes in various sizes, from small species kept in aquariums to large river giants. Valued in aquaculture and fishing, catfish are hardy and adaptable, living in freshwater and some brackish environments worldwide.', 'available', '2025-12-20 15:50:12', '2025-12-22 09:00:33', 'fish_6_6946c5b46696b.jpg'),
-(7, 'Koi', '', '200.00', 580, '', 'A domesticated ornamental variety of the common carp, prized for its vibrant colors and elegant patterns, often seen in decorative outdoor ponds. Koi symbolize good fortune, perseverance, and beauty in many cultures, especially in Japan. They are social, long-living fish that can grow quite large, and their care requires clean, well-maintained water and ample space.', 'available', '2025-12-20 15:51:48', '2026-01-13 16:58:43', 'fish_7_6946c614bd74a.jpg');
+(5, 'Tilapia', '', '200.00', 400, '', NULL, 'available', '2025-12-20 15:37:31', '2026-01-22 08:29:36', '1766245871_813cc3af268a.jpg'),
+(6, 'Catfish (Hito)', '', '200.00', 488, '', 'A bottom-feeding fish often identified by its long, whisker-like barbels around the mouth, which it uses to sense food in murky water. It has smooth, scaleless skin and comes in various sizes, from small species kept in aquariums to large river giants. Valued in aquaculture and fishing, catfish are hardy and adaptable, living in freshwater and some brackish environments worldwide.', 'available', '2025-12-20 15:50:12', '2026-01-13 17:15:07', 'fish_6_6946c5b46696b.jpg'),
+(7, 'Koi', '', '200.00', 178, '', 'A domesticated ornamental variety of the common carp, prized for its vibrant colors and elegant patterns, often seen in decorative outdoor ponds. Koi symbolize good fortune, perseverance, and beauty in many cultures, especially in Japan. They are social, long-living fish that can grow quite large, and their care requires clean, well-maintained water and ample space.', 'available', '2025-12-20 15:51:48', '2026-01-23 06:13:08', 'fish_7_6946c614bd74a.jpg');
 
 -- --------------------------------------------------------
 
@@ -275,7 +481,8 @@ INSERT INTO `menu_orders` (`id`, `order_number`, `admin_id`, `total_amount`, `st
 (8, 'AMENU176648701172520682', 1, '300.00', 'paid', '', '2025-12-23 10:50:11', '2025-12-23 10:50:11'),
 (9, 'AMENU176649510808363963', 1, '50.00', 'paid', '', '2025-12-23 13:05:08', '2025-12-23 13:05:08'),
 (10, 'AMENU176649597099689832', 11, '50.00', 'paid', '', '2025-12-23 13:19:30', '2025-12-23 13:19:30'),
-(11, 'AMENU176778327451638340', 1, '300.00', 'paid', '', '2026-01-07 10:54:34', '2026-01-07 10:54:34');
+(11, 'AMENU176778327451638340', 1, '300.00', 'paid', '', '2026-01-07 10:54:34', '2026-01-07 10:54:34'),
+(12, 'AMENU176958376574150602', 1, '13250.00', 'paid', '', '2026-01-28 07:02:45', '2026-01-28 07:02:45');
 
 -- --------------------------------------------------------
 
@@ -315,7 +522,8 @@ INSERT INTO `menu_order_items` (`id`, `menu_order_id`, `item_type`, `item_id`, `
 (14, 9, 'product', 26, '1.00', '50.00', '50.00', '2025-12-23 13:05:08'),
 (15, 10, 'product', 26, '1.00', '50.00', '50.00', '2025-12-23 13:19:30'),
 (16, 11, 'product', 21, '1.00', '250.00', '250.00', '2026-01-07 10:54:34'),
-(17, 11, 'product', 26, '1.00', '50.00', '50.00', '2026-01-07 10:54:34');
+(17, 11, 'product', 26, '1.00', '50.00', '50.00', '2026-01-07 10:54:34'),
+(18, 12, 'product', 21, '53.00', '250.00', '13250.00', '2026-01-28 07:02:45');
 
 -- --------------------------------------------------------
 
@@ -328,7 +536,7 @@ CREATE TABLE `orders` (
   `order_number` varchar(20) NOT NULL,
   `customer_id` int(11) NOT NULL,
   `order_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `pickup_date` date DEFAULT NULL,
+  `pickup_date` datetime DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `status` enum('pending','confirmed','paid','cancelled') DEFAULT 'pending',
   `notes` text DEFAULT NULL,
@@ -347,7 +555,14 @@ INSERT INTO `orders` (`id`, `order_number`, `customer_id`, `order_date`, `pickup
 (15, 'ORD17667147513205804', 9, '2025-12-26 02:05:51', '2025-12-26', '200.00', 'pending', 'Online order from website', '2025-12-26 02:05:51', '2025-12-26 02:05:51'),
 (16, 'ORD17677844031501034', 1, '2026-01-07 11:13:23', '2026-01-08', '400.00', 'pending', 'Online order from website', '2026-01-07 11:13:23', '2026-01-07 11:13:23'),
 (17, 'ORD17677853437404218', 1, '2026-01-07 11:29:03', '2026-01-07', '400.00', 'pending', 'Online order from website', '2026-01-07 11:29:03', '2026-01-07 11:29:03'),
-(18, 'ORD17683235238933570', 15, '2026-01-13 16:58:43', '2026-01-14', '200.00', 'pending', 'Online order from website', '2026-01-13 16:58:43', '2026-01-13 16:58:43');
+(18, 'ORD17683235238933570', 15, '2026-01-13 16:58:43', '2026-01-14', '200.00', 'pending', 'Online order from website', '2026-01-13 16:58:43', '2026-01-13 16:58:43'),
+(19, 'ORD20260113181507990', 15, '2026-01-13 17:15:07', '2026-01-15', '400.00', 'pending', 'Online order from website', '2026-01-13 17:15:07', '2026-01-13 17:15:07'),
+(20, 'ORD20260121172253820', 16, '2026-01-21 16:22:53', '2026-01-22', '390.00', 'confirmed', 'Online order from website', '2026-01-21 16:22:53', '2026-01-21 16:23:37'),
+(21, 'ORD20260121192144952', 8, '2026-01-21 18:21:44', '2026-01-22', '500.00', 'confirmed', 'Online order from website', '2026-01-21 18:21:44', '2026-01-21 18:32:45'),
+(22, 'ORD20260122092258802', 8, '2026-01-22 08:22:58', '2026-01-23', '99000.00', 'pending', 'Online order from website', '2026-01-22 08:22:58', '2026-01-22 08:22:58'),
+(23, 'ORD20260122093110123', 8, '2026-01-22 08:31:10', '2026-01-22', '1950.00', 'pending', 'Online order from website', '2026-01-22 08:31:10', '2026-01-22 08:31:10'),
+(24, 'ORD20260122093651515', 8, '2026-01-22 08:36:51', '2026-01-22', '80200.00', 'pending', 'Online order from website', '2026-01-22 08:36:51', '2026-01-22 08:36:51'),
+(25, 'ORD20260123071308336', 8, '2026-01-23 06:13:08', '2026-01-23', '200.00', 'pending', 'Online order from website', '2026-01-23 06:13:08', '2026-01-23 06:13:08');
 
 -- --------------------------------------------------------
 
@@ -377,7 +592,16 @@ INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `quantity`, `unit_pri
 (6, 16, 7, 2, '200.00', '400.00'),
 (7, 17, 7, 1, '200.00', '200.00'),
 (8, 17, 5, 1, '200.00', '200.00'),
-(9, 18, 7, 1, '200.00', '200.00');
+(9, 18, 7, 1, '200.00', '200.00'),
+(10, 19, 5, 1, '200.00', '200.00'),
+(11, 19, 6, 1, '200.00', '200.00'),
+(12, 20, 22, 1, '140.00', '140.00'),
+(13, 20, 21, 1, '250.00', '250.00'),
+(14, 21, 21, 2, '250.00', '500.00'),
+(15, 22, 5, 495, '200.00', '99000.00'),
+(16, 23, 26, 39, '50.00', '1950.00'),
+(17, 24, 7, 401, '200.00', '80200.00'),
+(18, 25, 7, 1, '200.00', '200.00');
 
 -- --------------------------------------------------------
 
@@ -404,12 +628,12 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `name`, `category`, `description`, `image`, `price`, `unit`, `stock_quantity`, `status`, `created_at`, `updated_at`) VALUES
-(21, 'Deep-Fry Hito', 'food', 'Crispy deep-fried catfish', '21_6947c3c2848f5.jpg', '250.00', 'order', 56, 'available', '2025-12-21 09:54:10', '2026-01-07 10:54:34'),
-(22, 'Adobo Hito', 'food', 'Traditional Filipino adobo', '22_6947c6b333bfd.jpg', '140.00', 'order', 97, 'available', '2025-12-21 10:06:43', '2025-12-22 08:32:41'),
+(21, 'Deep-Fry Hito', 'food', 'Crispy deep-fried catfish', '21_6947c3c2848f5.jpg', '250.00', 'order', 0, 'available', '2025-12-21 09:54:10', '2026-01-28 07:02:45'),
+(22, 'Adobo Hito', 'food', 'Traditional Filipino adobo', '22_6947c6b333bfd.jpg', '140.00', 'order', 96, 'available', '2025-12-21 10:06:43', '2026-01-21 16:22:54'),
 (23, 'Sisig', 'food', 'Sizzling hot sisig', '23_6947c74eeb08a.jpg', '130.00', 'order', 50, 'available', '2025-12-21 10:09:18', '2025-12-21 10:09:18'),
 (24, 'French Fries', 'snack', 'Golden crispy fries', '24_6947c79fd82bc.jpg', '60.00', 'order', 150, 'available', '2025-12-21 10:10:39', '2025-12-21 10:10:39'),
 (25, 'Coke', 'drink', 'Various cold beverages', '25_6947c7db6e9d8.jpg', '15.00', 'pcs', 144, 'available', '2025-12-21 10:11:39', '2025-12-22 08:36:22'),
-(26, 'Lumpia', 'food', 'Traditional Limpua', '26_6947c831e078b.webp', '50.00', 'order', 39, 'available', '2025-12-21 10:13:05', '2026-01-07 10:54:34');
+(26, 'Lumpia', 'food', 'Traditional Limpua', '26_6947c831e078b.webp', '50.00', 'order', 500, 'available', '2025-12-21 10:13:05', '2026-01-22 08:44:57');
 
 -- --------------------------------------------------------
 
@@ -430,9 +654,9 @@ CREATE TABLE `product_images` (
 --
 
 INSERT INTO `product_images` (`id`, `product_id`, `filename`, `is_main`, `created_at`) VALUES
-(0, 19, '19_6947bb14ba911.jpg', 1, '2025-12-21 09:17:08'),
 (2, 17, '17_6942d30913b02.jpg', 1, '2025-12-17 15:58:01'),
-(3, 18, '18_6942d45dc8fc1.webp', 1, '2025-12-17 16:03:41');
+(3, 18, '18_6942d45dc8fc1.webp', 1, '2025-12-17 16:03:41'),
+(10, 19, '19_6947bb14ba911.jpg', 1, '2025-12-21 09:17:08');
 
 -- --------------------------------------------------------
 
@@ -453,21 +677,28 @@ CREATE TABLE `reservations` (
   `contact_phone` varchar(20) DEFAULT NULL,
   `contact_email` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `cottage_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `reservations`
 --
 
-INSERT INTO `reservations` (`id`, `reservation_number`, `customer_id`, `reservation_type`, `num_guests`, `reservation_date`, `reservation_time`, `special_requests`, `status`, `contact_phone`, `contact_email`, `created_at`, `updated_at`) VALUES
-(1, 'RES-20251222-2515', 9, 'dine-in', 20, '2025-12-22', '12:43:00', 'birthday', 'pending', '09454739384', 'bingbing@gmail.com', '2025-12-22 04:43:20', '2026-01-07 10:52:45'),
-(2, 'RES-20251222-4514', 9, 'dine-in', 30, '2025-12-22', '12:59:00', 'asdf', 'pending', '09454739384', 'maoy@gmail.com', '2025-12-22 04:59:42', '2026-01-07 10:52:52'),
-(3, 'RES-20251222-7660', 9, 'private-events', 30, '2025-12-22', '13:15:00', 'adf', 'confirmed', '09454739384', 'testtest@gmail.com', '2025-12-22 05:15:26', '2026-01-07 10:53:03'),
-(4, 'RES-20251222-1312', 9, 'dine-in', 2, '2025-12-22', '13:33:00', 'dfgdfgfdgdfg', 'confirmed', '09454739384', 'testing@gmail.com', '2025-12-22 05:33:45', '2026-01-07 10:53:14'),
-(6, 'RES-20260107-7093', 3, 'cottage', 5, '2026-01-15', '19:18:00', 'sf', 'pending', '09454739386', 'zebra@gmail.com', '2026-01-07 11:18:19', '2026-01-07 11:18:19'),
-(7, 'RES-20260113-2616', 7, 'cottage', 2, '2026-01-13', '13:47:00', 'adf', 'pending', '09454739384', 'xamaagad@gmail.com', '2026-01-13 05:47:41', '2026-01-13 05:47:41'),
-(8, 'RES-20260113-0186', 8, 'farm visit', 2, '2026-01-13', '13:53:00', 'sdf', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-13 05:53:16', '2026-01-13 05:53:16');
+INSERT INTO `reservations` (`id`, `reservation_number`, `customer_id`, `reservation_type`, `num_guests`, `reservation_date`, `reservation_time`, `special_requests`, `status`, `contact_phone`, `contact_email`, `created_at`, `updated_at`, `cottage_id`) VALUES
+(1, 'RES-20251222-2515', 9, 'dine-in', 20, '2025-12-22', '12:43:00', 'birthday', 'pending', '09454739384', 'bingbing@gmail.com', '2025-12-22 04:43:20', '2026-01-07 10:52:45', NULL),
+(2, 'RES-20251222-4514', 9, 'dine-in', 30, '2025-12-22', '12:59:00', 'asdf', 'pending', '09454739384', 'maoy@gmail.com', '2025-12-22 04:59:42', '2026-01-07 10:52:52', NULL),
+(3, 'RES-20251222-7660', 9, 'private-events', 30, '2025-12-22', '13:15:00', 'adf', 'confirmed', '09454739384', 'testtest@gmail.com', '2025-12-22 05:15:26', '2026-01-07 10:53:03', NULL),
+(4, 'RES-20251222-1312', 9, 'dine-in', 2, '2025-12-22', '13:33:00', 'dfgdfgfdgdfg', 'confirmed', '09454739384', 'testing@gmail.com', '2025-12-22 05:33:45', '2026-01-07 10:53:14', NULL),
+(8, 'RES-20260113-0186', 8, 'farm visit', 2, '2026-01-13', '13:53:00', 'sdf', 'cancelled', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-13 05:53:16', '2026-01-21 18:38:03', NULL),
+(10, 'RES-20260121-0838', 16, 'dine-in', 5, '2026-01-22', '02:10:00', 'b', 'pending', '09454739384', 'mateo@gmail.com', '2026-01-21 18:10:59', '2026-01-21 18:10:59', NULL),
+(11, 'RES-20260121-3675', 16, 'private-events', 5, '2026-01-22', '02:15:00', 'adf', 'pending', '09454739384', 'mateo@gmail.com', '2026-01-21 18:15:20', '2026-01-21 18:15:20', NULL),
+(31, 'RES-20260128-1414', 8, 'cottage', 2, '2026-01-28', '02:29:00', 'df', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 06:44:59', '2026-01-28 06:45:28', 18),
+(32, 'RES-20260128-2581', 8, 'cottage', 5, '2026-01-28', '14:29:00', '', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 06:45:52', '2026-01-28 06:46:01', 18),
+(33, 'RES-20260128-1013', 8, 'cottage', 2, '2026-01-29', '02:29:00', '', 'confirmed', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 06:46:36', '2026-01-28 06:46:46', 18),
+(34, 'RES-20260128-1735', 8, 'cottage', 3, '2026-02-02', '02:29:00', '', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 06:51:06', '2026-01-28 06:51:06', 18),
+(35, 'RES-20260128-3771', 8, 'dine-in', 2, '2026-01-28', '03:39:00', '', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 07:39:11', '2026-01-28 07:39:11', NULL),
+(36, 'RES-20260128-9967', 8, 'cottage', 4, '2026-01-28', '02:43:00', '', 'pending', '09454739384', 'roneilbansas5222@gmail.com', '2026-01-28 07:39:27', '2026-01-28 07:39:27', 19);
 
 -- --------------------------------------------------------
 
@@ -606,6 +837,25 @@ ALTER TABLE `carts`
   ADD KEY `idx_product` (`fish_id`);
 
 --
+-- Indexes for table `cottages`
+--
+ALTER TABLE `cottages`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `cottage_availability`
+--
+ALTER TABLE `cottage_availability`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `cottage_id` (`cottage_id`);
+
+--
+-- Indexes for table `cottage_images`
+--
+ALTER TABLE `cottage_images`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `customers`
 --
 ALTER TABLE `customers`
@@ -690,12 +940,6 @@ ALTER TABLE `product_images`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT for table `product_images`
---
-ALTER TABLE `product_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
 -- Indexes for table `reservations`
 --
 ALTER TABLE `reservations`
@@ -751,22 +995,46 @@ ALTER TABLE `availability`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
+-- AUTO_INCREMENT for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `carts`
 --
 ALTER TABLE `carts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `cottages`
+--
+ALTER TABLE `cottages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
+-- AUTO_INCREMENT for table `cottage_availability`
+--
+ALTER TABLE `cottage_availability`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=346;
+
+--
+-- AUTO_INCREMENT for table `cottage_images`
+--
+ALTER TABLE `cottage_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `expenses`
 --
 ALTER TABLE `expenses`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `fish_species`
@@ -778,37 +1046,43 @@ ALTER TABLE `fish_species`
 -- AUTO_INCREMENT for table `menu_orders`
 --
 ALTER TABLE `menu_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `menu_order_items`
 --
 ALTER TABLE `menu_order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `product_images`
+--
+ALTER TABLE `product_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `staff`
@@ -825,6 +1099,12 @@ ALTER TABLE `users`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `cottage_availability`
+--
+ALTER TABLE `cottage_availability`
+  ADD CONSTRAINT `cottage_availability_ibfk_1` FOREIGN KEY (`cottage_id`) REFERENCES `cottages` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `menu_order_items`

@@ -2,6 +2,12 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../auth_admin.php';
 
+function formatDateTime($datetime) {
+    if (empty($datetime)) return '';
+    $dt = new DateTime($datetime);
+    return $dt->format('M j, Y g:iA'); // e.g., Feb 2, 2026 2:30PM
+}
+
 header('Content-Type: application/json');
 
 $ok = false;
@@ -56,13 +62,14 @@ try {
     }
 
     $data = [
+        'id' => (int)$order['id'],
         'order_number' => $order['order_number'],
         'customer_name' => $order['first_name'] . ' ' . $order['last_name'],
         'customer_email' => $order['email'],
         'total_amount' => $order['total_amount'],
         'status' => $order['status'],
-        'order_date' => date('M d, Y H:i', strtotime($order['order_date'])),
-        'pickup_date' => $order['pickup_date']
+        'order_date' => formatDateTime($order['order_date']),
+        'pickup_date' => $order['pickup_date'] ? formatDateTime($order['pickup_date']) : ''
     ];
 
     $ok = true;

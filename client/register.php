@@ -23,7 +23,7 @@ include 'partials/header.php';
                 </script>
                 <?php unset($_SESSION['reg_success']); ?>
             <?php else: ?>
-            <form method="post" action="../handlers/client_register.php">
+            <form method="post" action="../handlers/client_register.php" enctype="multipart/form-data">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <input type="text" name="first_name" placeholder="First name" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <input type="text" name="last_name" placeholder="Last name" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
@@ -32,6 +32,15 @@ include 'partials/header.php';
                     <input type="email" name="email" placeholder="Email" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <input type="text" name="phone" placeholder="Phone" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <input type="text" name="address" placeholder="Address (optional)" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    
+                    <!-- Government ID Upload -->
+                    <div style="margin:12px 0; padding:12px; background:#f0f7ff; border-radius:6px; border:1px solid #cce5ff;">
+                        <label style="display:block; font-weight:600; margin-bottom:10px; color:#233;">Government Issued ID *</label>
+                        <p style="font-size:13px; color:#666; margin-bottom:10px;">Upload a photo of your valid government ID (Passport, Driver's License, National ID, etc.)</p>
+                        <input type="file" name="government_id_image" accept="image/*" required style="padding:10px; border:1px solid #ddd; border-radius:6px; display:block; width:100%; margin-bottom:8px;">
+                        <small style="color:#666;">Supported formats: JPG, PNG, GIF (Max 5MB)</small>
+                    </div>
+
                     <div style="margin:10px 0; padding:12px; background:#f9f9f9; border-radius:6px;">
                         <label style="display:block; font-weight:600; margin-bottom:10px; color:#233;">Account Type *</label>
                         <div style="display:flex; gap:15px;">
@@ -49,6 +58,11 @@ include 'partials/header.php';
                         <input type="password" name="password" placeholder="Password" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
                         <input type="password" name="password_confirm" placeholder="Confirm password" required style="padding:10px; border:1px solid #ddd; border-radius:6px;">
                     </div>
+                    
+                    <div style="padding:12px; background:#fff3cd; border-radius:6px; border-left:4px solid #ffc107; font-size:13px; color:#856404;">
+                        <strong>ⓘ ID Verification:</strong> Your government ID will be verified by our admin team within 24 hours. Your account will remain active while verification is in progress.
+                    </div>
+                    
                     <div style="display:flex; gap:8px; justify-content:flex-end;">
                         <button class="btn btn-primary" style="padding:10px; border-radius:6px;">Register</button>
                         <a href="login.php" class="btn btn-secondary" style="padding:10px; border-radius:6px;">Have account? Login</a>
