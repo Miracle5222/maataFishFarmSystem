@@ -3,6 +3,9 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 $clientLoggedIn = isset($_SESSION['client_id']) && $_SESSION['client_id'];
 // Fetch latest order for logged-in user to show quick status in header
 $latest_order = null;
+$feedback_messages = [];
+$unread_feedback_count = 0;
+
 if ($clientLoggedIn) {
     @include_once __DIR__ . '/../../config/db.php';
     if (isset($conn) && $conn) {
@@ -16,6 +19,19 @@ if ($clientLoggedIn) {
                 $latest_order = $or->fetch_assoc();
             }
             $ost->close();
+        }
+        
+        // Fetch feedback messages for the customer
+        $fst = $conn->prepare('SELECT id, message, created_at FROM feedback_messages WHERE customer_id = ? ORDER BY created_at DESC LIMIT 5');
+        if ($fst) {
+            $fst->bind_param('i', $uid);
+            $fst->execute();
+            $fr = $fst->get_result();
+            while ($row = $fr->fetch_assoc()) {
+                $feedback_messages[] = $row;
+                $unread_feedback_count++;
+            }
+            $fst->close();
         }
     }
 }
@@ -237,6 +253,36 @@ if ($clientLoggedIn) {
             <div class="nav-buttons">
                 <a href="booking.php" class="btn btn-primary"><i class="fas fa-calendar"></i> Reserve</a>
                 <?php if ($clientLoggedIn): ?>
+                    <!-- Notification Bell -->
+                    <div class="notification-dropdown" style="position:relative; display:inline-block;">
+                        <button id="notificationBtn" class="btn btn-secondary" style="display:flex; align-items:center; gap:8px; position:relative;">
+                            <i class="fas fa-bell" style="font-size:18px;"></i>
+                            <?php if ($unread_feedback_count > 0): ?>
+                                <span style="position:absolute; top:-8px; right:-8px; background:#e74c3c; color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">
+                                    <?php echo min($unread_feedback_count, 9); ?>
+                                </span>
+                            <?php endif; ?>
+                        </button>
+                        <div id="notificationMenu" style="position:absolute; right:0; top:calc(100% + 8px); background:white; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:none; min-width:320px; z-index:2000; max-height:400px; overflow-y:auto;">
+                            <div style="padding:12px 14px; border-bottom:1px solid #f0f0f0; background:#f7f9f7; font-weight:600; color:#333;">
+                                📬 Notifications <?php if ($unread_feedback_count > 0): ?><span style="float:right; background:#27ae60; color:white; padding:2px 8px; border-radius:12px; font-size:11px;"><?php echo $unread_feedback_count; ?> new</span><?php endif; ?>
+                            </div>
+                            <?php if (!empty($feedback_messages)): ?>
+                                <?php foreach ($feedback_messages as $msg): ?>
+                                    <div style="padding:12px 14px; border-bottom:1px solid #f0f0f0; color:#333; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f7f9f7';" onmouseout="this.style.background='white';">
+                                        <p style="margin:0 0 4px 0; font-weight:500; color:#27ae60;">📨 Farm Feedback</p>
+                                        <p style="margin:0 0 4px 0; font-size:13px; color:#555; word-break:break-word;"><?php echo htmlspecialchars(substr($msg['message'], 0, 80)); ?><?php if (strlen($msg['message']) > 80): ?>...<?php endif; ?></p>
+                                        <small style="color:#999;"><?php echo date('M d, Y g:iA', strtotime($msg['created_at'])); ?></small>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div style="padding:20px 14px; text-align:center; color:#999;">
+                                    <i class="fas fa-inbox" style="font-size:32px; margin-bottom:8px; opacity:0.5;"></i>
+                                    <p style="margin:8px 0 0 0;">No notifications yet</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                     <div class="user-dropdown" style="position:relative; display:inline-block;">
                         <button id="userMenuBtn" class="btn btn-secondary" style="display:flex; align-items:center; gap:8px;">
                             <i class="fas fa-user-circle" style="font-size:20px;"></i>
@@ -316,5 +362,21 @@ if ($clientLoggedIn) {
             if (!btn || !menu) return;
             btn.addEventListener('click', function(e){ e.stopPropagation(); menu.style.display = (menu.style.display === 'block') ? 'none' : 'block'; });
             document.addEventListener('click', function(){ if(menu.style.display === 'block') menu.style.display = 'none'; });
+        })();
+
+        // notification dropdown toggle
+        (function(){
+            var btn = document.getElementById('notificationBtn');
+            var menu = document.getElementById('notificationMenu');
+            if (!btn || !menu) return;
+            btn.addEventListener('click', function(e){ 
+                e.stopPropagation(); 
+                menu.style.display = (menu.style.display === 'block' || menu.style.display === '') ? 'none' : 'block'; 
+            });
+            document.addEventListener('click', function(e){ 
+                if(menu.style.display === 'block' && e.target !== btn && !btn.contains(e.target)) {
+                    menu.style.display = 'none'; 
+                }
+            });
         })();
     </script>

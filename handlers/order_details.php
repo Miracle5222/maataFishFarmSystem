@@ -40,9 +40,11 @@ try {
 
     // Get order items
     $itemStmt = $conn->prepare('
-        SELECT oi.quantity, oi.unit_price, oi.subtotal, oi.product_id, p.name AS product_name 
+        SELECT oi.quantity, oi.unit_price, oi.subtotal, oi.product_id, 
+               COALESCE(p.name, fs.name) AS product_name 
         FROM order_items oi 
         LEFT JOIN products p ON p.id = oi.product_id 
+        LEFT JOIN fish_species fs ON fs.fish_id = oi.product_id
         WHERE oi.order_id = ?
     ');
     if ($itemStmt) {

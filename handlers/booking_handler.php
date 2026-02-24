@@ -9,6 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $reservation_type = trim($_POST['reservation_type'] ?? '');
     $cottage_id = isset($_POST['cottage_id']) ? intval($_POST['cottage_id']) : null;
+    $table_id = isset($_POST['table_id']) ? intval($_POST['table_id']) : null;
     $num_guests = intval($_POST['num_guests'] ?? 0);
     $reservation_date = trim($_POST['reservation_date'] ?? '');
     $reservation_time = trim($_POST['reservation_time'] ?? '');
@@ -32,6 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($reservation_type === 'cottage' && (!$cottage_id || $cottage_id <= 0)) {
         $errors[] = "Please select a cottage";
+    }
+
+    if ($reservation_type === 'dine-in' && (!$table_id || $table_id <= 0)) {
+        $errors[] = "Please select a dining table";
     }
 
     if ($num_guests < 1 || $num_guests > 200) {
@@ -79,6 +84,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $cottage_check->close();
+    }
+
+    // Validate table availability if dine-in reservation
+    if ($reservation_type === 'dine-in' && $table_id) {
+        $table_check = $conn->prepare("SELECT id, capacity, status FROM availability_tables WHERE id = ?");
+        $table_check->bind_param("i", $table_id);
+        $table_check->execute();
+        $table_result = $table_check->get_result();
+
+        if ($table_result->num_rows === 0) {
+            $errors[] = "Selected table does not exist";
+        } else {
+            $table = $table_result->fetch_assoc();
+
+            if ($table['status'] !== 'available') {
+                $errors[] = "Selected table is not available";
+            }
+
+            if ($num_guests > $table['capacity']) {
+                $errors[] = "Number of guests (" . $num_guests . ") exceeds table capacity (" . $table['capacity'] . ")";
+            }
+        }
+        $table_check->close();
     }
 
     if (!empty($errors)) {
@@ -133,67 +161,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Insert reservation
         $hasCottageColumn = false;
+        $hasTableColumn = false;
+        
         $colRes = $conn->query("SHOW COLUMNS FROM reservations LIKE 'cottage_id'");
         if ($colRes) {
             $hasCottageColumn = $colRes->num_rows > 0;
             if ($colRes) $colRes->free();
         }
+        
+        $colRes2 = $conn->query("SHOW COLUMNS FROM reservations LIKE 'table_id'");
+        if ($colRes2) {
+            $hasTableColumn = $colRes2->num_rows > 0;
+            if ($colRes2) $colRes2->free();
+        }
+
+        // Build INSERT statement based on available columns
+        $columns = "reservation_number, customer_id, reservation_type, num_guests, reservation_date, reservation_time, special_requests, status, contact_phone, contact_email";
+        $placeholders = "?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?";
+        $bindTypes = "sisisssss";
+        $bindValues = [$reservation_number, $customer_id, $reservation_type, $num_guests, $reservation_date, $reservation_time, $special_requests, $phone, $email];
 
         if ($hasCottageColumn && $cottage_id !== null) {
-            $insert_reservation = "INSERT INTO reservations
-                                  (reservation_number, customer_id, reservation_type, num_guests, reservation_date,
-                                   reservation_time, special_requests, status, contact_phone, contact_email, cottage_id, created_at, updated_at)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW(), NOW())";
+            $columns .= ", cottage_id";
+            $placeholders .= ", ?";
+            $bindTypes .= "i";
+            $bindValues[] = $cottage_id;
+        }
 
-            $stmt = $conn->prepare($insert_reservation);
-            if (!$stmt) {
-                $err = trim($conn->error ?: '');
-                error_log('[booking_handler] Prepare failed (with cottage_id) errno=' . $conn->errno . ' err=' . $err);
-                throw new Exception("Prepare failed (errno=" . $conn->errno . "): " . ($err ?: 'unknown error'));
-            }
+        if ($hasTableColumn && $table_id !== null) {
+            $columns .= ", table_id";
+            $placeholders .= ", ?";
+            $bindTypes .= "i";
+            $bindValues[] = $table_id;
+        }
 
-            // types: s=reservation_number, i=customer_id, s=reservation_type, i=num_guests,
-            // s=reservation_date, s=reservation_time, s=special_requests, s=phone, s=email, i=cottage_id
-            $stmt->bind_param(
-                "sisisssssi",
-                $reservation_number,
-                $customer_id,
-                $reservation_type,
-                $num_guests,
-                $reservation_date,
-                $reservation_time,
-                $special_requests,
-                $phone,
-                $email,
-                $cottage_id
-            );
-        } else {
-            // either column doesn't exist or no cottage selected; insert without cottage_id
-            $insert_reservation = "INSERT INTO reservations
-                                  (reservation_number, customer_id, reservation_type, num_guests, reservation_date,
-                                   reservation_time, special_requests, status, contact_phone, contact_email, created_at, updated_at)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())";
+        $columns .= ", created_at, updated_at";
+        $placeholders .= ", NOW(), NOW()";
 
-            $stmt = $conn->prepare($insert_reservation);
-            if (!$stmt) {
-                $err = trim($conn->error ?: '');
-                error_log('[booking_handler] Prepare failed (no cottage_id column) errno=' . $conn->errno . ' err=' . $err);
-                throw new Exception("Prepare failed (errno=" . $conn->errno . "): " . ($err ?: 'unknown error'));
-            }
+        $insert_reservation = "INSERT INTO reservations (" . $columns . ") VALUES (" . $placeholders . ")";
 
-            // types: s,i,s,i,s,s,s,s,s
-            $stmt->bind_param(
-                "sisisssss",
-                $reservation_number,
-                $customer_id,
-                $reservation_type,
-                $num_guests,
-                $reservation_date,
-                $reservation_time,
-                $special_requests,
-                $phone,
-                $email
-            );
+        $stmt = $conn->prepare($insert_reservation);
+        if (!$stmt) {
+            $err = trim($conn->error ?: '');
+            error_log('[booking_handler] Prepare failed errno=' . $conn->errno . ' err=' . $err);
+            throw new Exception("Prepare failed (errno=" . $conn->errno . "): " . ($err ?: 'unknown error'));
+        }
+
+        // Bind all values dynamically
+        if (!empty($bindValues)) {
+            $stmt->bind_param($bindTypes, ...$bindValues);
         }
 
         if ($stmt->execute()) {

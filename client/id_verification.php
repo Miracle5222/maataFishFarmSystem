@@ -12,7 +12,7 @@ $customer_id = intval($_SESSION['client_id']);
 $redirect_from = isset($_GET['redirect']) ? htmlspecialchars($_GET['redirect']) : null;
 
 // Get customer data
-$stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at FROM customers WHERE id = ?");
+$stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at, updated_at FROM customers WHERE id = ?");
 $stmt->bind_param('i', $customer_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -25,12 +25,38 @@ if ($result->num_rows == 0) {
 $customer = $result->fetch_assoc();
 $stmt->close();
 
+// Generate or use existing CSRF token to prevent form resubmission
+if (!isset($_SESSION['id_verification_token'])) {
+    $_SESSION['id_verification_token'] = bin2hex(random_bytes(32));
+}
+$form_token = $_SESSION['id_verification_token'];
+
 // Handle re-upload
 $message = '';
 $message_type = '';
+$old_image = null;
+
+// Check if this is a redirect after successful submission
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $message = '✅ Government ID updated successfully! Your new ID is now pending verification. The admin will review it shortly.';
+    $message_type = 'success';
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'reupload') {
-    if (!isset($_FILES['government_id_image'])) {
+    // Check CSRF token to prevent resubmission
+    $submitted_token = $_POST['verification_token'] ?? '';
+    
+    if (empty($submitted_token) || $submitted_token !== $_SESSION['id_verification_token']) {
+        // Token mismatch - this is a refresh attempt or invalid submission
+        // Don't process the file, just redirect to prevent browser resubmission warning
+        if (!empty($submitted_token)) {
+            // This means they're trying to resubmit after the token was changed (refresh case)
+            header('Location: id_verification.php?success=1');
+            exit;
+        }
+        $message = 'Invalid request. Please try again.';
+        $message_type = 'error';
+    } elseif (!isset($_FILES['government_id_image'])) {
         $message = 'No file selected';
         $message_type = 'error';
     } else {
@@ -41,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
         // Validate file
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $message = 'File upload error occurred';
+
             $message_type = 'error';
         } elseif (!in_array($file['type'], $allowed_types)) {
             $message = 'Invalid file type. Please upload a JPG, PNG, or GIF image';
@@ -54,30 +81,78 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
                 mkdir(__DIR__ . '/../assets/img/customer_ids', 0755, true);
             }
             
+            // Store old image path for potential cleanup
+            $old_image = $customer['government_id_image'];
+            
             // Generate unique filename
             $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
             $filename = 'govid_' . strtolower(str_replace(' ', '_', $_SESSION['client_name'])) . '_' . uniqid() . '.' . $ext;
             $filepath = __DIR__ . '/../assets/img/customer_ids/' . $filename;
             
             if (move_uploaded_file($file['tmp_name'], $filepath)) {
-                // Update database
-                $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0 WHERE id = ?");
-                $stmt->bind_param('si', $filename, $customer_id);
+                // Update database with new image and mark as resubmitted
+                $now = date('Y-m-d H:i:s');
                 
-                if ($stmt->execute()) {
-                    $stmt->close();
-                    $message = 'Government ID uploaded successfully and is pending verification';
-                    $message_type = 'success';
-                    // Refresh customer data
-                    $stmt = $conn->prepare("SELECT government_id_verified, government_id_image FROM customers WHERE id = ?");
-                    $stmt->bind_param('i', $customer_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $customer = $result->fetch_assoc();
-                    $stmt->close();
+                // First, try with updated_at (for resubmission tracking)
+                $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0, updated_at = ? WHERE id = ?");
+                
+                if (!$stmt) {
+                    // Fallback if updated_at column doesn't exist (add it automatically)
+                    $conn->query("ALTER TABLE customers ADD COLUMN updated_at TIMESTAMP NULL");
+                    $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0, updated_at = ? WHERE id = ?");
+                }
+                
+                if ($stmt) {
+                    $stmt->bind_param('ssi', $filename, $now, $customer_id);
+                    
+                    if ($stmt->execute()) {
+                        $stmt->close();
+                        
+                        // Log the resubmission activity (optional - don't break main flow if it fails)
+                        $activity_desc = 'Resubmitted government ID for verification (updated from: ' . ($old_image ? basename($old_image) : 'none') . ')';
+                        $user_type = 'customer';
+                        $activity_type = 'id_resubmission';
+                        
+                        $log_stmt = @$conn->prepare("INSERT INTO activity_logs (user_id, user_type, activity_type, description, created_at) VALUES (?, ?, ?, ?, NOW())");
+                        if ($log_stmt) {
+                            @$log_stmt->bind_param('isss', $customer_id, $user_type, $activity_type, $activity_desc);
+                            @$log_stmt->execute();
+                            @$log_stmt->close();
+                        }
+                        
+                        // Delete old image file if exists
+                        if ($old_image) {
+                            $old_filepath = __DIR__ . '/../assets/img/customer_ids/' . $old_image;
+                            if (file_exists($old_filepath)) {
+                                @unlink($old_filepath);
+                            }
+                        }
+                        
+                        $message = '✅ Government ID updated successfully! Your new ID is now pending verification. The admin will review it shortly.';
+                        $message_type = 'success';
+                        
+                        // Refresh customer data
+                        $refresh_stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at, updated_at FROM customers WHERE id = ?");
+                        $refresh_stmt->bind_param('i', $customer_id);
+                        $refresh_stmt->execute();
+                        $refresh_result = $refresh_stmt->get_result();
+                        $customer = $refresh_result->fetch_assoc();
+                        $refresh_stmt->close();
+                        
+                        // Regenerate token to prevent resubmission on page refresh
+                        $_SESSION['id_verification_token'] = bin2hex(random_bytes(32));
+                        
+                        // Redirect to prevent form resubmission on page refresh
+                        header('Location: id_verification.php?success=1');
+                        exit;
+                    } else {
+                        @unlink($filepath);
+                        $message = 'Failed to save file information';
+                        $message_type = 'error';
+                    }
                 } else {
                     @unlink($filepath);
-                    $message = 'Failed to save file information';
+                    $message = 'Failed to process file';
                     $message_type = 'error';
                 }
             } else {
@@ -92,19 +167,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
 $status = 'Not submitted';
 $status_badge = 'secondary';
 $show_upload = true;
+$show_current_image = false;
 
-if ($customer['government_id_verified'] == 1) {
-    $status = 'Verified';
+// Ensure proper type comparison
+$verified_status = intval($customer['government_id_verified']);
+
+if ($verified_status === 1) {
+    $status = 'Verified ✓';
     $status_badge = 'success';
     $show_upload = false;
-} elseif ($customer['government_id_verified'] == 2) {
+    $show_current_image = true;
+} elseif ($verified_status === 2) {
     $status = 'Rejected - Please Re-submit';
     $status_badge = 'danger';
     $show_upload = true;
-} elseif ($customer['government_id_image']) {
+    $show_current_image = true;
+} elseif (!empty($customer['government_id_image'])) {
     $status = 'Pending Verification';
     $status_badge = 'warning';
     $show_upload = false;
+    $show_current_image = true;
 }
 ?>
 <!DOCTYPE html>
@@ -176,19 +258,22 @@ if ($customer['government_id_verified'] == 1) {
             border-radius: 4px;
         }
         .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
+            background: #28a745;
+            border: 1px solid #218838;
+            color: white;
+            font-weight: 500;
         }
         .alert-error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
+            background: #dc3545;
+            border: 1px solid #c82333;
+            color: white;
+            font-weight: 500;
         }
         .alert-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
+            background: #ff8c00;
+            border: 1px solid #e67e00;
+            color: white;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -203,7 +288,7 @@ if ($customer['government_id_verified'] == 1) {
             </div>
         <?php endif; ?>
         
-        <?php if ($redirect_from): ?>
+        <?php if ($redirect_from && intval($customer['government_id_verified']) !== 1): ?>
             <div class="alert" style="background: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
                 <strong>📋 Verification Required:</strong><br>
                 To proceed with <?php echo ($redirect_from == 'booking') ? 'making a reservation' : 'placing an order'; ?>, you need to verify your government ID first.
@@ -243,6 +328,57 @@ if ($customer['government_id_verified'] == 1) {
             </div>
         <?php endif; ?>
         
+        <!-- Current ID Image Display -->
+        <?php if ($show_current_image && $customer['government_id_image']): ?>
+            <div style="margin-top: 30px;">
+                <h4 style="margin-bottom: 15px;">Your Submitted ID</h4>
+                <div style="border-radius: 8px; overflow: hidden; background: #f8f9fa; padding: 15px; text-align: center;">
+                    <img src="../assets/img/customer_ids/<?php echo htmlspecialchars($customer['government_id_image']); ?>" 
+                         alt="Current Government ID" 
+                         style="max-width: 100%; max-height: 300px; border-radius: 6px; border: 1px solid #ddd;">
+                    <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">
+                        Submitted: <?php echo date('F d, Y', strtotime($customer['created_at'])); ?>
+                    </p>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="btn-upload" onclick="toggleUpdateForm()" style="width: auto; background: #17a2b8;">
+                        🔄 Update ID
+                    </button>
+                </div>
+                    
+                    <div id="updateForm" style="display: none; margin-top: 20px; padding: 20px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px;">⚠️ Update ID Image</h4>
+                        <p style="margin: 0 0 15px 0; color: #856404;">
+                            <strong>Important:</strong> Uploading a new ID will reset your verification status to "Pending" while the admin reviews your submission.
+                        </p>
+                        
+                        <form method="POST" enctype="multipart/form-data" onsubmit="return confirmResubmit();">
+                            <input type="hidden" name="action" value="reupload">
+                            <input type="hidden" name="verification_token" value="<?php echo htmlspecialchars($form_token); ?>">
+                            
+                            <div class="upload-area" id="updateUploadArea">
+                                <i style="font-size: 40px; color: #999;">📄</i>
+                                <p style="margin: 10px 0 0 0; color: #666;">
+                                    Click to upload or drag and drop<br>
+                                    <small style="color: #999;">JPG, PNG or GIF (Max 5MB)</small>
+                                </p>
+                                <input type="file" name="government_id_image" id="updateFileInput" accept="image/*" style="display: none;">
+                            </div>
+                            
+                            <div id="updateFileName" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+                            
+                            <button type="submit" class="btn-upload" style="width: 100%; margin-top: 20px; border: none; cursor: pointer; background: #ffc107; color: #333;">
+                                ✓ Submit New ID
+                            </button>
+                            <button type="button" class="btn-upload" onclick="toggleUpdateForm()" style="width: 100%; margin-top: 10px; border: none; cursor: pointer; background: #6c757d;">
+                                ✗ Cancel
+                            </button>
+                        </form>
+                    </div>
+            </div>
+        <?php endif; ?>
+        
         <?php if ($show_upload): ?>
             <h4 style="margin-top: 30px; margin-bottom: 15px;">Upload Government ID</h4>
             
@@ -259,6 +395,7 @@ if ($customer['government_id_verified'] == 1) {
             
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="reupload">
+                <input type="hidden" name="verification_token" value="<?php echo htmlspecialchars($form_token); ?>">
                 
                 <div class="upload-area" id="uploadArea">
                     <i style="font-size: 40px; color: #999;">📄</i>
@@ -283,40 +420,109 @@ if ($customer['government_id_verified'] == 1) {
     </div>
     
     <script>
+        // Confirmation dialog for ID resubmission
+        function confirmResubmit() {
+            const fileInp = document.getElementById('updateFileInput');
+            if (!fileInp || fileInp.files.length === 0) {
+                alert('⚠️ Please select a file before submitting');
+                return false;
+            }
+            
+            return confirm('⚠️ Are you sure you want to resubmit your ID?\n\nThis will:\n• Reset your verification status to "Pending"\n• Keep your verification status until the admin reviews\n\nClick OK to continue.');
+        }
+        
+        // Toggle update form for verified customers
+        function toggleUpdateForm() {
+            const updateForm = document.getElementById('updateForm');
+            if (updateForm) {
+                updateForm.style.display = updateForm.style.display === 'none' ? 'block' : 'none';
+                if (updateForm.style.display === 'block') {
+                    updateForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+        
+        // Setup main upload area
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         
-        // Click to upload
-        uploadArea.addEventListener('click', () => fileInput.click());
-        
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            fileInput.files = e.dataTransfer.files;
-            updateFileName();
-        });
-        
-        // File input change
-        fileInput.addEventListener('change', updateFileName);
+        if (uploadArea && fileInput) {
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            });
+            
+            fileInput.addEventListener('change', updateFileName);
+        }
         
         function updateFileName() {
-            if (fileInput.files.length > 0) {
+            if (fileInput && fileInput.files.length > 0) {
                 fileName.textContent = '✓ Selected: ' + fileInput.files[0].name;
             } else {
                 fileName.textContent = '';
             }
         }
+        
+        // Setup update upload area (for verified customers)
+        const updateUploadArea = document.getElementById('updateUploadArea');
+        const updateFileInput = document.getElementById('updateFileInput');
+        const updateFileNameEl = document.getElementById('updateFileName');
+        
+        if (updateUploadArea && updateFileInput) {
+            updateUploadArea.addEventListener('click', () => updateFileInput.click());
+            
+            updateUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                updateUploadArea.classList.add('dragover');
+            });
+            
+            updateUploadArea.addEventListener('dragleave', () => {
+                updateUploadArea.classList.remove('dragover');
+            });
+            
+            updateUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                updateUploadArea.classList.remove('dragover');
+                updateFileInput.files = e.dataTransfer.files;
+                updateFileNameDisplay();
+            });
+            
+            updateFileInput.addEventListener('change', updateFileNameDisplay);
+        }
+        
+        function updateFileNameDisplay() {
+            if (updateFileInput && updateFileInput.files.length > 0) {
+                updateFileNameEl.textContent = '✓ Selected: ' + updateFileInput.files[0].name;
+            } else if (updateFileNameEl) {
+                updateFileNameEl.textContent = '';
+            }
+        }
+        
+        // Disable submit buttons after form submission to prevent accidental double clicks
+        document.addEventListener('submit', function(e) {
+            if (e.target.method === 'POST' && e.target.enctype === 'multipart/form-data') {
+                const submitButtons = e.target.querySelectorAll('button[type="submit"]');
+                submitButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                });
+            }
+        });
     </script>
 </body>
 </html>

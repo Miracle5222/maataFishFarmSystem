@@ -1,8 +1,9 @@
 <?php
 session_start();
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../handlers/activity_logger.php';
 
-// Check if user is logged in
+// Check if user is logged in and is admin/manager/staff
 if (empty($_SESSION['user_id']) || empty($_SESSION['role'])) {
     header('Location: ../admin_login.php');
     exit();
@@ -16,8 +17,8 @@ if (!$id) {
 }
 
 try {
-    // Get slot info first
-    $get_stmt = $conn->prepare('SELECT current_reservations FROM availability WHERE id = ?');
+    // Get table info first
+    $get_stmt = $conn->prepare('SELECT table_name FROM availability_tables WHERE id = ?');
     if (!$get_stmt) {
         throw new Exception('Database error: ' . $conn->error);
     }
@@ -29,19 +30,15 @@ try {
     
     $get_result = $get_stmt->get_result();
     if ($get_result->num_rows === 0) {
-        throw new Exception('Availability slot not found');
+        throw new Exception('Table not found');
     }
     
-    $slot = $get_result->fetch_assoc();
+    $table = $get_result->fetch_assoc();
+    $table_name = $table['table_name'];
     $get_stmt->close();
     
-    // Check if slot has reservations
-    if ($slot['current_reservations'] > 0) {
-        throw new Exception('Cannot delete this slot - it has ' . $slot['current_reservations'] . ' reservation(s). Please cancel them first.');
-    }
-    
-    // Delete the slot
-    $delete_stmt = $conn->prepare('DELETE FROM availability WHERE id = ?');
+    // Delete the table
+    $delete_stmt = $conn->prepare('DELETE FROM availability_tables WHERE id = ?');
     if (!$delete_stmt) {
         throw new Exception('Database error: ' . $conn->error);
     }
@@ -52,11 +49,24 @@ try {
     }
     
     $delete_stmt->close();
-    header('Location: ../availability_check.php?message=' . urlencode('Availability slot deleted successfully'));
+    
+    // Log the activity
+    logActivity(
+        $conn,
+        $_SESSION['user_id'],
+        $_SESSION['role'],
+        'DELETE',
+        'availability_tables',
+        $id,
+        $table_name,
+        "Deleted table '$table_name'"
+    );
+    
+    header('Location: ../availability_check.php?message=' . urlencode("Table '$table_name' deleted successfully"));
     exit();
     
 } catch (Exception $e) {
-    error_log('Availability Delete Error: ' . $e->getMessage());
+    error_log('Table Delete Error: ' . $e->getMessage());
     header('Location: ../availability_check.php?error=' . urlencode($e->getMessage()));
     exit();
 }

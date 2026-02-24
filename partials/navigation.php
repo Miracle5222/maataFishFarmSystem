@@ -34,7 +34,7 @@ $role = $_SESSION['role'] ?? '';
         </a>
         <ul class="sidenav-menu">
             <li class="sidenav-item"><a href="orders_view.php" class="sidenav-link">
-                    <div>View Orders</div>
+                    <div>View Online Orders</div>
                 </a></li>
          
          
@@ -43,6 +43,12 @@ $role = $_SESSION['role'] ?? '';
                 </a></li>
             <li class="sidenav-item"><a href="menu_orders_view.php" class="sidenav-link">
                     <div>View Menu Orders</div>
+                </a></li>
+            <li class="sidenav-item"><a href="admin_fish_order.php" class="sidenav-link">
+                    <div>Fish Order</div>
+                </a></li>
+            <li class="sidenav-item"><a href="fish_orders_view.php" class="sidenav-link">
+                    <div>View Fish Orders</div>
                 </a></li>
         </ul>
     </li>
@@ -62,6 +68,12 @@ $role = $_SESSION['role'] ?? '';
                 </a></li>
             <li class="sidenav-item"><a href="cottage_management.php" class="sidenav-link">
                     <div>Cottage Management</div>
+                </a></li>
+            <li class="sidenav-item"><a href="boat_management.php" class="sidenav-link">
+                    <div>Boat Management</div>
+                </a></li>
+            <li class="sidenav-item"><a href="boat_rent.php" class="sidenav-link">
+                    <div>Boat Rent</div>
                 </a></li>
 
         </ul>

@@ -252,6 +252,34 @@ $menu_share = $combined_sales > 0 ? ((float)$metrics['total_menu_sales'] / $comb
 $net_fish = (float)$metrics['total_sales'] - ($total_expenses * $fish_share);
 $net_menu = (float)$metrics['total_menu_sales'] - ($total_expenses * $menu_share);
 $net_combined = $combined_sales - $total_expenses;
+
+// Entrance fee metrics (count guests and compute revenue at ₱50/guest)
+$ENTRANCE_FEE = 50; // fixed fee per guest for now
+$entrance_total_guests = 0; // (kept for potential use)
+$entrance_total_revenue = 0.0;
+$entrance_today_guests = 0;
+$entrance_today_revenue = 0.0;
+$today_date = date('Y-m-d');
+
+$entr_stmt = $conn->prepare("SELECT new_values, timestamp FROM activity_logs WHERE entity_type = 'entrance_fee' AND activity_type = 'CREATE'");
+if ($entr_stmt) {
+    $entr_stmt->execute();
+    $entr_res = $entr_stmt->get_result();
+    while ($erow = $entr_res->fetch_assoc()) {
+        $nv = json_decode($erow['new_values'], true);
+        $num = intval($nv['num_guests'] ?? 0);
+        if ($num > 0) {
+            $revenue = $num * $ENTRANCE_FEE;
+            $entrance_total_revenue += $revenue;
+            if (date('Y-m-d', strtotime($erow['timestamp'])) === $today_date) {
+                $entrance_today_guests += $num;
+                $entrance_today_revenue += $revenue;
+            }
+        }
+    }
+    $entr_stmt->close();
+}
+
 ?>
 
 <!-- [ Layout content ] Start -->
@@ -318,6 +346,36 @@ $net_combined = $combined_sales - $total_expenses;
                                 <p class="text-muted mb-0"><span class="badge badge-danger">Pending</span> Orders</p>
                             </div>
                             <div class="feather icon-clock display-4 text-danger"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entrance Fee Metrics Row -->
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2"><?php echo number_format($entrance_today_guests); ?></h2>
+                                <p class="text-muted mb-0"><span class="badge badge-primary">Today</span> Entrance Guests</p>
+                            </div>
+                            <div class="feather icon-users display-4 text-info"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($entrance_total_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><span class="badge badge-info">Total</span> Entrance Revenue</p>
+                            </div>
+                            <div class="feather icon-dollar-sign display-4 text-primary"></div>
                         </div>
                     </div>
                 </div>

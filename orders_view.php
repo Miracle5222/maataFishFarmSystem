@@ -163,8 +163,8 @@ function formatDateTime($datetime) {
                     <thead class="bg-light">
                         <tr>
                             <th>Item Name</th>
-                            <th>Qty</th>
-                            <th>Unit Price</th>
+                            <th>Weight (kg/g)</th>
+                            <th>Price per kg</th>
                             <th>Subtotal</th>
                         </tr>
                     </thead>

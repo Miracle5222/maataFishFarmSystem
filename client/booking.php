@@ -82,6 +82,20 @@ try {
 } catch (Exception $e) {
     // Handle error silently
 }
+
+// Fetch available dining tables for dine-in
+$available_tables = [];
+try {
+    $table_query = "SELECT id, table_name, capacity, status FROM availability_tables WHERE status = 'available' ORDER BY capacity ASC, table_name ASC";
+    $table_result = $conn->query($table_query);
+    if ($table_result) {
+        while ($table = $table_result->fetch_assoc()) {
+            $available_tables[] = $table;
+        }
+    }
+} catch (Exception $e) {
+    // Handle error silently - no tables available
+}
 ?>
 
 <main>
@@ -157,6 +171,27 @@ try {
                     </div>
 
                     <input type="hidden" name="reservation_type" value="<?php echo $reservation_type; ?>">
+
+                    <?php if ($reservation_type === 'dine-in'): ?>
+                        <!-- Dining Table Selection -->
+                        <div>
+                            <label for="table_id" style="display: block; font-weight: 600; margin-bottom: 8px; color: #27ae60;">Select Dining Table *</label>
+                            <?php if (empty($available_tables)): ?>
+                                <div style="background-color: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 12px; border-radius: 5px;">
+                                    <i class="fas fa-info-circle"></i> No tables available at the moment. Please try again later or contact us directly.
+                                </div>
+                            <?php else: ?>
+                                <select id="table_id" name="table_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                                    <option value="">-- Select a Table --</option>
+                                    <?php foreach ($available_tables as $table): ?>
+                                        <option value="<?php echo $table['id']; ?>" data-capacity="<?php echo $table['capacity']; ?>">
+                                            <?php echo htmlspecialchars($table['table_name']); ?> (Capacity: <?php echo $table['capacity']; ?> guests)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($reservation_type === 'cottage'): ?>
                         <!-- Cottage Selection -->

@@ -1,0 +1,271 @@
+# ⚡ DEPLOYMENT QUICK REFERENCE CARD
+
+**Print This Page & Keep It Handy**
+
+---
+
+## 🎯 3-MINUTE DEPLOYMENT
+
+```
+STEP 1: Upload All Files (FTP)
+├─ Upload entire project to: /public_html/maataFishFarmSystem/
+├─ Check: All 48 files transferred
+└─ Set permissions: 644 (files), 755 (folders)
+
+STEP 2: Create Directory
+├─ Create: /assets/img/customer_ids/
+││─ Set permissions: 755 or 775
+│└─ This stores customer government ID images
+└─ Check: Directory created successfully
+
+STEP 3: Run Setup (Choose ONE)
+├─ OPTION A (Auto): 
+│  └─ Visit: https://yourdomain.com/maataFishFarmSystem/db_setup_now.php
+│     └─ See "Setup Complete" message ✅
+│
+└─ OPTION B (Manual):
+   └─ Log into phpMyAdmin
+      ├─ Select database: maata
+      ├─ Click: SQL tab
+      ├─ Paste: SQL_MIGRATIONS.sql
+      └─ Click: Go ✅
+
+STEP 4: Test Essential Features
+├─ Admin login: admin_login.php ✅
+├─ Create table: availability_set.php ✅
+├─ View tables: availability_check.php ✅
+├─ Customer login: client/index.php ✅
+└─ Book table: client/booking.php?type=dine-in ✅
+
+STEP 5: Verify Database
+├─ Availability Tables: SELECT * FROM availability_tables;
+├─ Boat Inventory: SELECT * FROM boat_inventory;
+├─ Boat Rentals: SELECT * FROM boat_rentals;
+└─ Check reservations.table_id column exists
+
+✅ DONE! System is live
+```
+
+---
+
+## 🆘 QUICK TROUBLESHOOTING
+
+| Problem | Solution |
+|---------|----------|
+| "Table doesn't exist" | Visit `db_setup_now.php` or run SQL manually |
+| File upload fails | Check `/assets/img/customer_ids/` exists & writable |
+| Can't login | Clear cookies, try incognito mode, verify credentials |
+| Blank page | Check error_log in cPanel, verify db credentials |
+| No tables in booking | Create table in `availability_set.php` first |
+
+---
+
+## 📱 Important URLs (After Deployment)
+
+```
+ADMIN PANEL:
+→ Login: https://yourdomain.com/maataFishFarmSystem/admin_login.php
+→ Dashboard: https://yourdomain.com/maataFishFarmSystem/index.php
+→ Create Tables: https://yourdomain.com/maataFishFarmSystem/availability_set.php
+→ View Tables: https://yourdomain.com/maataFishFarmSystem/availability_check.php
+→ Boat Management: https://yourdomain.com/maataFishFarmSystem/boat_management.php
+→ Customer Verification: https://yourdomain.com/maataFishFarmSystem/customer_id_verification.php
+
+CUSTOMER PORTAL:
+→ Login: https://yourdomain.com/maataFishFarmSystem/client/
+→ Booking: https://yourdomain.com/maataFishFarmSystem/client/booking.php?type=dine-in
+→ Profile: https://yourdomain.com/maataFishFarmSystem/client/profile.php
+→ ID Verification: https://yourdomain.com/maataFishFarmSystem/client/id_verification.php
+
+SETUP & UTILITIES:
+→ Auto Setup: https://yourdomain.com/maataFishFarmSystem/db_setup_now.php
+→ Manual: https://yourdomain.com/maataFishFarmSystem/setup_availability_table.php
+```
+
+---
+
+## 🗄️ Database Credentials
+
+**Verify These Match Your Hosting:**
+
+File: `config/db.php`
+```php
+$host = 'localhost';      // Usually 'localhost'
+$user = 'YOUR_DB_USER';   // Database username
+$pass = 'YOUR_DB_PASS';   // Database password
+$db = 'maata';             // Database name
+```
+
+**To Find Your Credentials:**
+1. Log into cPanel
+2. Databases → MySQL Databases
+3. Find your database name and user
+4. Update `config/db.php` if different
+
+---
+
+## 📋 Critical Files to Upload
+
+| Priority | File | Purpose |
+|----------|------|---------|
+| 🔴 FIRST | `db_setup_now.php` | One-click setup |
+| 🔴 FIRST | `config/db.php` | Database config |
+| 🟠 SECOND | Availability files | Table management |
+| 🟠 SECOND | `handlers/` folder | Form processing |
+| 🟠 SECOND | `client/` folder | Customer portal |
+| 🟡 THIRD | Boat files | Rental system |
+| 🟡 THIRD | Fish files | Order system |
+| 🟢 LAST | `.md` files | Documentation |
+
+---
+
+## ✅ Testing Checklist (2 minutes)
+
+```
+ADMIN:
+□ Login with admin username/password
+□ Dashboard pages load without errors
+□ Create new table with name="Table 1", capacity=4
+□ See success message
+□ View table in availability_check.php
+□ Edit table capacity to 5
+□ Delete test table
+
+CUSTOMER:
+□ Login with customer username/password
+□ Go to Booking → Dine-In
+□ See available tables in dropdown
+□ Select a table
+□ Complete booking
+□ See "Booking Confirmed" message
+
+DATABASE:
+□ phpMyAdmin shows availability_tables
+□ phpMyAdmin shows boat_inventory, boat_rentals
+□ reservations table has table_id column
+□ customers table has government_id columns
+```
+
+---
+
+## 📞 Support Docs in Your Folder
+
+```
+📄 DEPLOYMENT_GUIDE.md ........... Full 7-section guide
+📄 QUICK_START_DEPLOYMENT.md .... 5-step overview
+📄 DEPLOYMENT_CHECKLIST.md ...... Detailed testing
+📄 FILE_INVENTORY.md ........... Complete file list
+📄 SQL_MIGRATIONS.sql ......... All SQL commands
+```
+
+---
+
+## 🔐 Security Checklist
+
+- [ ] Database credentials in `config/db.php` are secure
+- [ ] File permissions set correctly (644 files, 755 folders)
+- [ ] `/admin/` folder is password protected
+- [ ] Customer IDs directory is not publicly accessible
+- [ ] Regular backups enabled in cPanel
+
+---
+
+## 📊 New Feature Summary
+
+| Feature | Admin Location | Customer Location |
+|---------|----------|----------|
+| **Table Management** | Availability menu | Booking Form |
+| **Boat Rentals** | Reservation menu | Booking Form |
+| **Fish Orders** | Orders menu | N/A |
+| **ID Verification** | Customers menu | Profile page |
+| **Entrance Fees** | Report menu | Entry point |
+
+---
+
+## ⏱️ Time Estimates
+
+| Task | Time |
+|------|------|
+| Upload files (FTP) | 3-5 min |
+| Create directory | 1 min |
+| Run database setup | 2 min |
+| Create test table | 2 min |
+| Test all features | 5 min |
+| **TOTAL** | **~15-20 min** |
+
+---
+
+## 🎨 Feature Preview (What's New)
+
+### For Admin
+1. **Availability → Set Availability**
+   - Form to create dining tables
+   - Fields: Name, Capacity (1-100), Notes
+   - One-click setup if database missing
+
+2. **Availability → Check Availability**
+   - List all tables
+   - Edit capacity/status inline
+   - Delete with confirmation
+
+3. **Reservation → Boat Management**
+   - Add/edit/delete boats
+   - Set per-boat rental rates
+   - Track boat availability
+
+4. **Orders → Admin Fish Order**
+   - Create fish orders for customers
+   - Track fish order status
+   - Print receipts
+
+5. **Customers → ID Verification**
+   - View pending government IDs
+   - See uploaded ID images
+   - Send feedback/approval
+
+### For Customer
+1. **Booking → Dine-In**
+   - Select available table
+   - Choose preferred seating
+   - Complete reservation
+
+2. **Profile → Upload ID**
+   - Upload government issued ID
+   - Track verification status
+   - See admin feedback
+
+3. **Booking → Boat Rental** (New)
+   - Browse available boats
+   - Select rental period
+   - Automatic price calculation
+
+---
+
+## ⚠️ Do NOT Forget
+
+```
+❌ DON'T upload without creating /assets/img/customer_ids/ first
+❌ DON'T skip running db_setup_now.php
+❌ DON'T forget to update config/db.php credentials
+❌ DON'T skip the verification testing
+❌ DON'T use admin password as customer password
+```
+
+---
+
+## ✨ Success Signs
+
+✅ All files uploaded  
+✅ db_setup_now.php shows success  
+✅ Admin can create a table  
+✅ Customer can see table in booking  
+✅ No database errors anywhere  
+✅ All buttons/forms work  
+
+**READY FOR PRODUCTION!** 🚀
+
+---
+
+**Print Date:** February 23, 2026  
+**Keep this card handy during deployment**  
+**Questions? See DEPLOYMENT_GUIDE.md for details**

@@ -8,7 +8,7 @@ if (empty($_SESSION['client_id'])) {
     exit;
 }
 $cid = (int) $_SESSION['client_id'];
-$stmt = $conn->prepare('SELECT id, first_name, last_name, email, phone, address, barangay, municipality FROM customers WHERE id = ? LIMIT 1');
+$stmt = $conn->prepare('SELECT id, first_name, last_name, email, phone, address, barangay, municipality, government_id_verified, id_verification_date FROM customers WHERE id = ? LIMIT 1');
 $stmt->bind_param('i', $cid);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -30,6 +30,37 @@ include 'partials/header.php';
             <?php if (!empty($_GET['error'])): ?>
                 <div style="color:#c00; margin-bottom:12px"><?php echo htmlspecialchars($_GET['error']); ?></div>
             <?php endif; ?>
+
+            <!-- ID Verification Status Card -->
+            <div style="background:#f8f9fa; border-left:4px solid #007bff; padding:15px; border-radius:6px; margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <p style="margin:0 0 8px 0; color:#666; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <strong>Government ID Verification Status</strong>
+                        </p>
+                        <?php 
+                            $verified_status = intval($user['government_id_verified'] ?? 0);
+                            if ($verified_status === 1) {
+                                echo '<p style="margin:0; color:#28a745; font-size:16px; font-weight:600;">✓ Verified</p>';
+                                if (!empty($user['id_verification_date'])) {
+                                    echo '<small style="color:#666;">Verified on ' . date('F d, Y', strtotime($user['id_verification_date'])) . '</small>';
+                                }
+                            } elseif ($verified_status === 2) {
+                                echo '<p style="margin:0; color:#dc3545; font-size:16px; font-weight:600;">✗ Rejected</p>';
+                                echo '<small style="color:#666;">Please re-submit your government ID</small>';
+                            } else {
+                                echo '<p style="margin:0; color:#ffc107; font-size:16px; font-weight:600;">⏳ Pending Verification</p>';
+                                echo '<small style="color:#666;">Admin is reviewing your submission</small>';
+                            }
+                        ?>
+                    </div>
+                    <div style="text-align:right;">
+                        <a href="id_verification.php" style="display:inline-block; padding:8px 16px; background:#007bff; color:white; text-decoration:none; border-radius:5px; font-size:14px; font-weight:500;">
+                            <?php echo $verified_status === 1 ? '🔄 Update ID' : '📋 Upload ID'; ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
             <form id="editProfileForm" method="POST" action="../handlers/client_profile_handler.php">
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($user['id']); ?>">
