@@ -53,15 +53,21 @@ $menu_sales_res = $menu_sales_stmt->get_result();
 $metrics['total_menu_sales'] = $menu_sales_res->fetch_assoc()['total'] ?? 0;
 $menu_sales_stmt->close();
 
-// 7. Total Sales (Combined)
+// 7. Total Sales (Combined) - Note: This will be updated after calculating all revenue streams
 $metrics['combined_sales'] = $metrics['total_sales'] + $metrics['total_menu_sales'];
 
 // 8. Today's Sales
 $today = date('Y-m-d');
-$today_stmt = $conn->prepare('SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE DATE(created_at) = ?
+$today_stmt = $conn->prepare('SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE DATE(created_at) = ? AND status IN ("paid", "completed")
     UNION ALL
-    SELECT COALESCE(SUM(total_amount), 0) as total FROM menu_orders WHERE DATE(created_at) = ?');
-$today_stmt->bind_param('ss', $today, $today);
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM menu_orders WHERE DATE(created_at) = ? AND status IN ("paid", "completed")
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM fish_orders WHERE DATE(created_at) = ? AND status = "paid"
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM boat_rentals WHERE DATE(created_at) = ? AND status = "completed"
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM reservations WHERE DATE(created_at) = ? AND reservation_type = "cottage" AND status = "completed"');
+$today_stmt->bind_param('sssss', $today, $today, $today, $today, $today);
 $today_stmt->execute();
 $today_res = $today_stmt->get_result();
 $today_total = 0;
@@ -73,10 +79,16 @@ $today_stmt->close();
 
 // 9. This Month's Sales
 $month_start = date('Y-m-01');
-$month_stmt = $conn->prepare('SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE DATE(created_at) >= ?
+$month_stmt = $conn->prepare('SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE DATE(created_at) >= ? AND status IN ("paid", "completed")
     UNION ALL
-    SELECT COALESCE(SUM(total_amount), 0) as total FROM menu_orders WHERE DATE(created_at) >= ?');
-$month_stmt->bind_param('ss', $month_start, $month_start);
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM menu_orders WHERE DATE(created_at) >= ? AND status IN ("paid", "completed")
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM fish_orders WHERE DATE(created_at) >= ? AND status = "paid"
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM boat_rentals WHERE DATE(created_at) >= ? AND status = "completed"
+    UNION ALL
+    SELECT COALESCE(SUM(total_amount), 0) as total FROM reservations WHERE DATE(created_at) >= ? AND reservation_type = "cottage" AND status = "completed"');
+$month_stmt->bind_param('sssss', $month_start, $month_start, $month_start, $month_start, $month_start);
 $month_stmt->execute();
 $month_res = $month_stmt->get_result();
 $month_total = 0;
@@ -200,11 +212,194 @@ $menu_dist_res = $menu_dist_stmt->get_result();
 $menu_orders_count = $menu_dist_res->fetch_assoc()['cnt'] ?? 0;
 $menu_dist_stmt->close();
 
-// 16. Revenue by Order Type
-$revenue_dist = [
-    ['label' => 'Fish Orders', 'value' => $metrics['total_sales'], 'percentage' => $metrics['combined_sales'] > 0 ? round(($metrics['total_sales'] / $metrics['combined_sales']) * 100, 1) : 0],
-    ['label' => 'Menu Orders', 'value' => $metrics['total_menu_sales'], 'percentage' => $metrics['combined_sales'] > 0 ? round(($metrics['total_menu_sales'] / $metrics['combined_sales']) * 100, 1) : 0]
-];
+// ===== BOAT RENTALS REVENUE (calculated early for revenue distribution) =====
+$walkin_boat_revenue = 0;
+$walkin_boat_count = 0;
+$online_boat_revenue = 0;
+$online_boat_count = 0;
+$boat_stmt = $conn->prepare('
+    SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as cnt 
+    FROM boat_rentals 
+    WHERE status = "completed"
+');
+if ($boat_stmt) {
+    $boat_stmt->execute();
+    $boat_res = $boat_stmt->get_result();
+    if ($boat_row = $boat_res->fetch_assoc()) {
+        $walkin_boat_revenue = (float)($boat_row['total'] ?? 0);
+        $walkin_boat_count = (int)($boat_row['cnt'] ?? 0);
+    }
+    $boat_stmt->close();
+}
+$total_boat_revenue = $walkin_boat_revenue + $online_boat_revenue;
+$total_boat_count = $walkin_boat_count + $online_boat_count;
+
+// ===== ENTRANCE FEE METRICS =====
+$ENTRANCE_FEE = 50; // fixed fee per guest for now
+$entrance_total_guests = 0; // (kept for potential use)
+$entrance_total_revenue = 0.0;
+$entrance_today_guests = 0;
+$entrance_today_revenue = 0.0;
+$today_date = date('Y-m-d');
+
+$entr_stmt = $conn->prepare("SELECT new_values, timestamp FROM activity_logs WHERE entity_type = 'entrance_fee' AND activity_type = 'CREATE'");
+if ($entr_stmt) {
+    $entr_stmt->execute();
+    $entr_res = $entr_stmt->get_result();
+    while ($erow = $entr_res->fetch_assoc()) {
+        $nv = json_decode($erow['new_values'], true);
+        $num = intval($nv['num_guests'] ?? 0);
+        if ($num > 0) {
+            $revenue = $num * $ENTRANCE_FEE;
+            $entrance_total_revenue += $revenue;
+            if (date('Y-m-d', strtotime($erow['timestamp'])) === $today_date) {
+                $entrance_today_guests += $num;
+                $entrance_today_revenue += $revenue;
+            }
+        }
+    }
+    $entr_stmt->close();
+}
+
+// Online Fish Orders (from orders table with is_manual = 0, containing fish items only)
+// Only count PAID orders (pending orders should not count as sales yet)
+$online_fish_stmt = $conn->prepare('
+    SELECT COALESCE(SUM(o.total_amount), 0) as total, COUNT(DISTINCT o.id) as cnt 
+    FROM orders o
+    WHERE o.is_manual = 0 AND o.status IN ("paid", "completed")
+    AND EXISTS (
+        SELECT 1 FROM order_items oi 
+        JOIN fish_species fs ON oi.product_id = fs.fish_id 
+        WHERE oi.order_id = o.id
+    )
+');
+$online_fish_revenue = 0;
+$online_fish_count = 0;
+if ($online_fish_stmt) {
+    $online_fish_stmt->execute();
+    $online_fish_res = $online_fish_stmt->get_result();
+    $online_fish_row = $online_fish_res->fetch_assoc();
+    $online_fish_revenue = (float)($online_fish_row['total'] ?? 0);
+    $online_fish_count = (int)($online_fish_row['cnt'] ?? 0);
+    $online_fish_stmt->close();
+}
+
+// Online Menu Orders (from orders table with is_manual = 0, containing menu items only)
+// Only count PAID orders (pending orders should not count as sales yet)
+$online_menu_stmt = $conn->prepare('
+    SELECT COALESCE(SUM(o.total_amount), 0) as total, COUNT(DISTINCT o.id) as cnt 
+    FROM orders o
+    WHERE o.is_manual = 0 AND o.status IN ("paid", "completed")
+    AND EXISTS (
+        SELECT 1 FROM order_items oi 
+        JOIN products p ON oi.product_id = p.id 
+        WHERE oi.order_id = o.id
+    )
+');
+$online_menu_revenue = 0;
+$online_menu_count = 0;
+if ($online_menu_stmt) {
+    $online_menu_stmt->execute();
+    $online_menu_res = $online_menu_stmt->get_result();
+    $online_menu_row = $online_menu_res->fetch_assoc();
+    $online_menu_revenue = (float)($online_menu_row['total'] ?? 0);
+    $online_menu_count = (int)($online_menu_row['cnt'] ?? 0);
+    $online_menu_stmt->close();
+}
+
+// Walk-In Fish Orders (from fish_orders table)
+$walkin_fish_stmt = $conn->prepare('SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as cnt FROM fish_orders WHERE status = "paid"');
+$walkin_fish_revenue = 0;
+$walkin_fish_count = 0;
+if ($walkin_fish_stmt) {
+    $walkin_fish_stmt->execute();
+    $walkin_fish_res = $walkin_fish_stmt->get_result();
+    $walkin_fish_row = $walkin_fish_res->fetch_assoc();
+    $walkin_fish_revenue = (float)($walkin_fish_row['total'] ?? 0);
+    $walkin_fish_count = (int)($walkin_fish_row['cnt'] ?? 0);
+    $walkin_fish_stmt->close();
+}
+
+// ===== COTTAGE RENTALS REVENUE =====
+
+// Online Cottage Reservations (is_manual = 0)
+$online_cottage_stmt = $conn->prepare('
+    SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as cnt 
+    FROM reservations 
+    WHERE reservation_type = "cottage" 
+    AND status = "completed"
+    AND is_manual = 0
+');
+$online_cottage_revenue = 0;
+$online_cottage_count = 0;
+if ($online_cottage_stmt) {
+    $online_cottage_stmt->execute();
+    $online_cottage_res = $online_cottage_stmt->get_result();
+    if ($online_cottage_row = $online_cottage_res->fetch_assoc()) {
+        $online_cottage_revenue = (float)($online_cottage_row['total'] ?? 0);
+        $online_cottage_count = (int)($online_cottage_row['cnt'] ?? 0);
+    }
+    $online_cottage_stmt->close();
+}
+
+// Walk-In/Manual Cottage Reservations (is_manual = 1)
+$walkin_cottage_stmt = $conn->prepare('
+    SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as cnt 
+    FROM reservations 
+    WHERE reservation_type = "cottage" 
+    AND status = "completed"
+    AND is_manual = 1
+');
+$walkin_cottage_revenue = 0;
+$walkin_cottage_count = 0;
+if ($walkin_cottage_stmt) {
+    $walkin_cottage_stmt->execute();
+    $walkin_cottage_res = $walkin_cottage_stmt->get_result();
+    if ($walkin_cottage_row = $walkin_cottage_res->fetch_assoc()) {
+        $walkin_cottage_revenue = (float)($walkin_cottage_row['total'] ?? 0);
+        $walkin_cottage_count = (int)($walkin_cottage_row['cnt'] ?? 0);
+    }
+    $walkin_cottage_stmt->close();
+}
+
+$total_cottage_revenue = $walkin_cottage_revenue + $online_cottage_revenue;
+$total_cottage_count = $walkin_cottage_count + $online_cottage_count;
+
+// ===== CALCULATE TOTAL REVENUE AND REVENUE DISTRIBUTION =====
+// Update combined sales to include ALL revenue streams (separated by order type)
+$metrics['combined_sales'] = (float)$online_fish_revenue + (float)$online_menu_revenue + (float)$walkin_fish_revenue + (float)$metrics['total_menu_sales'] + (float)$total_cottage_revenue + (float)$total_boat_revenue + (float)$entrance_total_revenue;
+
+// Revenue distribution for ALL revenue sources
+$total_revenue_for_dist = $metrics['combined_sales'];
+$revenue_dist = [];
+
+// Only add non-zero revenue streams to the pie chart
+if ($online_fish_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Online Fish Orders', 'value' => (float)$online_fish_revenue, 'percentage' => round(($online_fish_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($walkin_fish_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Walk-in Fish Orders', 'value' => (float)$walkin_fish_revenue, 'percentage' => round(($walkin_fish_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($online_menu_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Online Menu Orders', 'value' => (float)$online_menu_revenue, 'percentage' => round(($online_menu_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($metrics['total_menu_sales'] > 0) {
+    $revenue_dist[] = ['label' => 'Direct Menu Orders', 'value' => (float)$metrics['total_menu_sales'], 'percentage' => round(($metrics['total_menu_sales'] / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($total_cottage_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Cottage Rentals', 'value' => (float)$total_cottage_revenue, 'percentage' => round(($total_cottage_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($total_boat_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Boat Rentals', 'value' => (float)$total_boat_revenue, 'percentage' => round(($total_boat_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+if ($entrance_total_revenue > 0) {
+    $revenue_dist[] = ['label' => 'Entrance Fees', 'value' => (float)$entrance_total_revenue, 'percentage' => round(($entrance_total_revenue / max($total_revenue_for_dist, 0.01)) * 100, 1)];
+}
+
+// If no revenue, add a placeholder
+if (empty($revenue_dist)) {
+    $revenue_dist = [['label' => 'No Revenue', 'value' => 0, 'percentage' => 0]];
+}
 
 // Convert chart data to JSON for JavaScript
 $months_labels = $months_data ? array_map(function($m) { return $m['label']; }, $months_data) : [];
@@ -244,43 +439,18 @@ if ($expenses_stmt) {
     $expenses_stmt->close();
 }
 
-// Compute net revenue by allocating expenses proportionally to fish/menu revenue
-$combined_sales = max(0.0, (float)$metrics['combined_sales']);
-$fish_share = $combined_sales > 0 ? ((float)$metrics['total_sales'] / $combined_sales) : 0.0;
-$menu_share = $combined_sales > 0 ? ((float)$metrics['total_menu_sales'] / $combined_sales) : 0.0;
+// Compute net revenue BEFORE STORAGE - will be recalculated after all revenue streams are known
+$combined_sales_temp = max(0.0, (float)$metrics['total_sales'] + (float)$metrics['total_menu_sales']);
+$fish_share = $combined_sales_temp > 0 ? ((float)$metrics['total_sales'] / $combined_sales_temp) : 0.0;
+$menu_share = $combined_sales_temp > 0 ? ((float)$metrics['total_menu_sales'] / $combined_sales_temp) : 0.0;
 
-$net_fish = (float)$metrics['total_sales'] - ($total_expenses * $fish_share);
-$net_menu = (float)$metrics['total_menu_sales'] - ($total_expenses * $menu_share);
-$net_combined = $combined_sales - $total_expenses;
-
-// Entrance fee metrics (count guests and compute revenue at ₱50/guest)
-$ENTRANCE_FEE = 50; // fixed fee per guest for now
-$entrance_total_guests = 0; // (kept for potential use)
-$entrance_total_revenue = 0.0;
-$entrance_today_guests = 0;
-$entrance_today_revenue = 0.0;
-$today_date = date('Y-m-d');
-
-$entr_stmt = $conn->prepare("SELECT new_values, timestamp FROM activity_logs WHERE entity_type = 'entrance_fee' AND activity_type = 'CREATE'");
-if ($entr_stmt) {
-    $entr_stmt->execute();
-    $entr_res = $entr_stmt->get_result();
-    while ($erow = $entr_res->fetch_assoc()) {
-        $nv = json_decode($erow['new_values'], true);
-        $num = intval($nv['num_guests'] ?? 0);
-        if ($num > 0) {
-            $revenue = $num * $ENTRANCE_FEE;
-            $entrance_total_revenue += $revenue;
-            if (date('Y-m-d', strtotime($erow['timestamp'])) === $today_date) {
-                $entrance_today_guests += $num;
-                $entrance_today_revenue += $revenue;
-            }
-        }
-    }
-    $entr_stmt->close();
-}
+// Calculate net revenue after all revenue streams are known
+// Net Combined Revenue = Total Revenue - Total Expenses
+$net_combined = (float)$metrics['combined_sales'] - (float)$total_expenses;
 
 ?>
+
+<!-- [ Layout content ] Start -->
 
 <!-- [ Layout content ] Start -->
 <div class="layout-content">
@@ -382,6 +552,122 @@ if ($entr_stmt) {
             </div>
         </div>
 
+        <!-- Revenue by Category Row -->
+        <div class="row">
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($online_fish_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-shopping-bag"></i> <strong>Online Fish Orders</strong></p>
+                                <small class="text-muted"><?php echo $online_fish_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-shopping-cart display-4 text-primary" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($walkin_fish_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-shopping-bag"></i> <strong>Walk-In Fish Orders</strong></p>
+                                <small class="text-muted"><?php echo $walkin_fish_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-shopping-cart display-4 text-danger" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($online_menu_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-utensils"></i> <strong>Online Menu Orders</strong></p>
+                                <small class="text-muted"><?php echo $online_menu_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-coffee display-4 text-info" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($metrics['total_menu_sales'], 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-utensils"></i> <strong>Direct Menu Orders</strong></p>
+                                <small class="text-muted">Walk-in Restaurant Sales</small>
+                            </div>
+                            <div class="feather icon-coffee display-4 text-warning" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($online_cottage_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-home"></i> <strong>Online Cottage</strong></p>
+                                <small class="text-muted"><?php echo $online_cottage_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-home display-4 text-success" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($walkin_cottage_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-home"></i> <strong>Walk-In Cottage</strong></p>
+                                <small class="text-muted"><?php echo $walkin_cottage_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-home display-4 text-warning" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($total_boat_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-anchor"></i> <strong>Boat Revenue</strong></p>
+                                <small class="text-muted"><?php echo $total_boat_count; ?> completed</small>
+                            </div>
+                            <div class="feather icon-anchor display-4 text-danger" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="">
+                                <h2 class="mb-2">₱<?php echo number_format($entrance_total_revenue, 2); ?></h2>
+                                <p class="text-muted mb-0"><i class="feather icon-gate"></i> <strong>Entrance Fee</strong></p>
+                                <small class="text-muted"><?php echo $entrance_total_guests; ?> guests</small>
+                            </div>
+                            <div class="feather icon-users display-4 text-secondary" style="opacity: 0.5;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Charts Row -->
         <div class="row">
             <!-- Sales Trend Chart -->
@@ -396,14 +682,61 @@ if ($entr_stmt) {
                 </div>
             </div>
 
-            <!-- Revenue Distribution Pie Chart -->
+            <!-- Revenue Breakdown Table (moved from below) -->
             <div class="col-lg-4">
                 <div class="card mb-4">
-                    <div class="card-header with-elements">
-                        <h6 class="card-header-title mb-0">Revenue Distribution</h6>
+                    <div class="card-header with-elements pb-0">
+                        <h6 class="card-header-title mb-0">Revenue Breakdown</h6>
                     </div>
                     <div class="card-body">
-                        <canvas id="revenueDistChart" style="max-height: 300px;"></canvas>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Online Fish Orders:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($online_fish_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Online Menu Orders:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($online_menu_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Walk-In Fish Orders:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($walkin_fish_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Direct Menu Orders:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($metrics['total_menu_sales'], 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Online Cottage:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($online_cottage_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Walk-In Cottage:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($walkin_cottage_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Boat Rentals:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($total_boat_revenue, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Entrance Fees:</strong></td>
+                                    <td class="text-right">₱<?php echo number_format($entrance_total_revenue, 2); ?></td>
+                                </tr>
+                                <tr class="border-top">
+                                    <td><strong>Total Revenue:</strong></td>
+                                    <td class="text-right"><strong>₱<?php echo number_format($metrics['combined_sales'], 2); ?></strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Expenses:</strong></td>
+                                    <td class="text-right text-danger">₱<?php echo number_format($total_expenses ?? 0, 2); ?></td>
+                                </tr>
+                                <tr class="border-top">
+                                    <td><strong>Net Combined Revenue:</strong></td>
+                                    <td class="text-right"><strong>₱<?php echo number_format($net_combined ?? 0, 2); ?></strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -467,13 +800,14 @@ if ($entr_stmt) {
 
         <!-- Order Type Distribution & Products -->
         <div class="row">
+            <!-- Revenue Distribution Pie Chart (moved from Charts Row) -->
             <div class="col-lg-4">
                 <div class="card mb-4">
                     <div class="card-header with-elements">
-                        <h6 class="card-header-title mb-0">Order Count Distribution</h6>
+                        <h6 class="card-header-title mb-0">Revenue Distribution</h6>
                     </div>
                     <div class="card-body">
-                        <canvas id="orderDistChart" style="max-height: 250px;"></canvas>
+                        <canvas id="revenueDistChart" style="max-height: 300px;"></canvas>
                     </div>
                 </div>
             </div>
@@ -499,46 +833,11 @@ if ($entr_stmt) {
             </div>
             <div class="col-lg-4">
                 <div class="card mb-4">
-                    <div class="card-header with-elements pb-0">
-                        <h6 class="card-header-title mb-0">Revenue Breakdown</h6>
+                    <div class="card-header with-elements">
+                        <h6 class="card-header-title mb-0">Order Count Distribution</h6>
                     </div>
                     <div class="card-body">
-                        <table class="table table-sm table-borderless">
-                            <tbody>
-                                <tr>
-                                    <td><strong>Fish Orders:</strong></td>
-                                    <td class="text-right">₱<?php echo number_format($metrics['total_sales'], 2); ?></td>
-                                </tr>
-                                <!-- <tr>
-                                    <td><strong>Fish Orders (from Orders):</strong></td>
-                                    <td class="text-right">₱<?php echo number_format($fish_total, 2); ?></td>
-                                </tr> -->
-                                <tr>
-                                    <td><strong>Menu Orders:</strong></td>
-                                    <td class="text-right">₱<?php echo number_format($metrics['total_menu_sales'], 2); ?></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Total Expenses:</strong></td>
-                                    <td class="text-right text-danger">₱<?php echo number_format($total_expenses ?? 0, 2); ?></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Net Fish Revenue:</strong></td>
-                                    <td class="text-right">₱<?php echo number_format($net_fish ?? 0, 2); ?></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Net Menu Revenue:</strong></td>
-                                    <td class="text-right">₱<?php echo number_format($net_menu ?? 0, 2); ?></td>
-                                </tr>
-                                <tr class="border-top">
-                                    <td><strong>Total Revenue:</strong></td>
-                                    <td class="text-right"><strong>₱<?php echo number_format($metrics['combined_sales'], 2); ?></strong></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Net Combined Revenue:</strong></td>
-                                    <td class="text-right"><strong>₱<?php echo number_format($net_combined ?? 0, 2); ?></strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <canvas id="orderDistChart" style="max-height: 300px;"></canvas>
                     </div>
                 </div>
             </div>
@@ -658,6 +957,7 @@ new Chart(ctx, {
 
 // Revenue Distribution Pie Chart
 const revenueData = <?php echo $revenue_dist_json; ?>;
+const revenueColors = ['#28a745', '#ffc107', '#17a2b8', '#007bff', '#6f42c1', '#e83e8c', '#fd7e14'];
 const ctx2 = document.getElementById('revenueDistChart').getContext('2d');
 new Chart(ctx2, {
     type: 'doughnut',
@@ -665,7 +965,7 @@ new Chart(ctx2, {
         labels: revenueData.map(d => d.label),
         datasets: [{
             data: revenueData.map(d => d.value),
-            backgroundColor: ['#28a745', '#ffc107'],
+            backgroundColor: revenueColors.slice(0, revenueData.length),
             borderColor: '#fff',
             borderWidth: 2
         }]
@@ -729,7 +1029,15 @@ new Chart(ctx3, {
         indexAxis: 'y',
         plugins: {
             legend: {
-                display: false
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Count: ' + context.parsed.x;
+                    }
+                }
             }
         },
         scales: {

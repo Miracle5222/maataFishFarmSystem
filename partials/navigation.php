@@ -33,22 +33,28 @@ $role = $_SESSION['role'] ?? '';
             <div>Orders</div>
         </a>
         <ul class="sidenav-menu">
+            <!-- Fish Orders Section -->
+            <li class="sidenav-heading font-weight-600 py-2 " style="padding-left:35px;color: #27ae60; margin-top: 8px; margin-left: 12px;">Fish Orders</li>
             <li class="sidenav-item"><a href="orders_view.php" class="sidenav-link">
-                    <div>View Online Orders</div>
-                </a></li>
-         
-         
-            <li class="sidenav-item"><a href="admin_menu_order.php" class="sidenav-link">
-                    <div>Menu Order</div>
-                </a></li>
-            <li class="sidenav-item"><a href="menu_orders_view.php" class="sidenav-link">
-                    <div>View Menu Orders</div>
-                </a></li>
-            <li class="sidenav-item"><a href="admin_fish_order.php" class="sidenav-link">
-                    <div>Fish Order</div>
+                    <span class="sidenav-text">Online Fish Orders</span>
                 </a></li>
             <li class="sidenav-item"><a href="fish_orders_view.php" class="sidenav-link">
-                    <div>View Fish Orders</div>
+                    <span class="sidenav-text">Walk-in Fish Orders</span>
+                </a></li>
+            <li class="sidenav-item"><a href="admin_fish_order.php" class="sidenav-link">
+                    <span class="sidenav-text">+ Create Fish Order</span>
+                </a></li>
+
+            <!-- Menu Orders Section -->
+            <li class="sidenav-heading font-weight-600 py-2" style="padding-left:35px;color: #7b1fa2; margin-top: 12px; margin-left: 12px;">Menu Orders</li>
+            <li class="sidenav-item"><a href="online_menu_orders_view.php" class="sidenav-link">
+                    <span class="sidenav-text">Online Menu Orders</span>
+                </a></li>
+            <li class="sidenav-item"><a href="menu_orders_view.php" class="sidenav-link">
+                    <span class="sidenav-text">Direct Menu Orders</span>
+                </a></li>
+            <li class="sidenav-item"><a href="admin_menu_order.php" class="sidenav-link">
+                    <span class="sidenav-text">+ Create Menu Order</span>
                 </a></li>
         </ul>
     </li>
@@ -62,6 +68,9 @@ $role = $_SESSION['role'] ?? '';
         <ul class="sidenav-menu">
             <li class="sidenav-item"><a href="reservations_list.php" class="sidenav-link">
                     <div>View Reservations</div>
+                </a></li>
+            <li class="sidenav-item"><a href="manual_cottage_reservation.php" class="sidenav-link">
+                    <div>Walk-In Cottage Rental</div>
                 </a></li>
             <li class="sidenav-item"><a href="cancelled_reservations.php" class="sidenav-link">
                     <div>Cancelled Reservation</div>
@@ -139,7 +148,7 @@ $role = $_SESSION['role'] ?? '';
     </li>
 
     <!-- Availability -->
-    <li class="sidenav-item">
+    <!-- <li class="sidenav-item">
         <a href="javascript:" class="sidenav-link sidenav-toggle">
             <i class="sidenav-icon feather icon-check-square"></i>
             <div>Availability</div>
@@ -152,7 +161,7 @@ $role = $_SESSION['role'] ?? '';
                     <div>Set Availability</div>
                 </a></li>
         </ul>
-    </li>
+    </li> -->
 
     <!-- Customers -->
     <li class="sidenav-item">

@@ -15,10 +15,10 @@ function formatTime($time) {
     $parts = explode(':', $time);
     $hour = (int)$parts[0];
     $minute = $parts[1];
-    $ampm = $hour >= 12 ? 'pm' : 'am';
+    $ampm = $hour >= 12 ? 'PM' : 'AM';
     $hour12 = $hour % 12;
     if ($hour12 == 0) $hour12 = 12;
-    return sprintf('%d:%s%s', $hour12, $minute, $ampm);
+    return sprintf('%d:%s %s', $hour12, $minute, $ampm);
 }
 ?>
 <main style="padding:40px 20px;">

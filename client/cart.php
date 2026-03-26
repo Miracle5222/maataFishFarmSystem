@@ -126,9 +126,17 @@ include 'partials/header.php';
                 return res.json(); 
             })
             .then(function(data) {
-                console.log('Cart data:', data);
+                console.log('Cart API Response:', data);
                 if (data.success) {
                     cartItems = data.items || [];
+                    console.log('Cart items loaded:', cartItems.map(function(item) {
+                        return {
+                            name: item.name,
+                            quantity: item.quantity + ' (type: ' + typeof item.quantity + ')',
+                            unit_price: item.unit_price,
+                            subtotal: item.subtotal
+                        };
+                    }));
                     renderCart();
                 } else {
                     console.error('API error:', data.error, data.debug);
@@ -152,7 +160,14 @@ include 'partials/header.php';
         table.style.flexDirection = 'column';
         table.style.gap = '12px';
 
-        cartItems.forEach(function(item) {
+        cartItems.forEach(function(item, idx) {
+            console.log('Rendering cart item #' + idx + ':', {
+                name: item.name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                subtotal: item.subtotal,
+                calculated: (item.unit_price * item.quantity).toFixed(2)
+            });
             var row = document.createElement('div');
             row.style.display = 'flex';
             row.style.justifyContent = 'space-between';
@@ -190,16 +205,16 @@ include 'partials/header.php';
             var btnMinus = document.createElement('button');
             btnMinus.textContent = '−';
             btnMinus.style.cssText = 'background:#e0e0e0; border:none; width:32px; height:32px; border-radius:4px; cursor:pointer; font-weight:600; color:#333;';
-            btnMinus.onclick = function(e) { e.preventDefault(); updateQty(item.id, item.quantity - 1); };
+            btnMinus.onclick = function(e) { e.preventDefault(); var newQty = Math.max(0.1, Math.round((item.quantity - 0.1) * 10) / 10); updateQty(item.id, newQty); };
 
             var qtySpan = document.createElement('span');
-            qtySpan.textContent = item.quantity;
-            qtySpan.style.cssText = 'min-width:24px; text-align:center; font-weight:600;';
+            qtySpan.textContent = item.quantity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            qtySpan.style.cssText = 'min-width:40px; text-align:center; font-weight:600;';
 
             var btnPlus = document.createElement('button');
             btnPlus.textContent = '+';
             btnPlus.style.cssText = 'background:#27ae60; border:none; width:32px; height:32px; border-radius:4px; cursor:pointer; font-weight:600; color:white;';
-            btnPlus.onclick = function(e) { e.preventDefault(); updateQty(item.id, item.quantity + 1); };
+            btnPlus.onclick = function(e) { e.preventDefault(); var newQty = Math.round((item.quantity + 0.1) * 10) / 10; updateQty(item.id, newQty); };
 
             qtyDiv.appendChild(btnMinus);
             qtyDiv.appendChild(qtySpan);
@@ -207,8 +222,8 @@ include 'partials/header.php';
 
             var priceDiv = document.createElement('div');
             priceDiv.style.textAlign = 'right';
-            priceDiv.style.minWidth = '100px';
-            priceDiv.innerHTML = '<strong style="font-size:16px; color:#27ae60;">₱' + item.subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong><br><small style="color:#999;">x' + item.quantity + '</small>';
+            priceDiv.style.minWidth = '140px';
+            priceDiv.innerHTML = '<small style="color:#666; display:block; margin-bottom:4px;">₱' + item.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '/' + escapeHtml(item.unit) + ' × ' + item.quantity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + escapeHtml(item.unit) + '</small><strong style="font-size:16px; color:#27ae60;">₱' + item.subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong>';
 
             var removeBtn = document.createElement('button');
             removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -296,11 +311,12 @@ include 'partials/header.php';
         cartItems.forEach(function(it) {
             if (selectedIds.has(it.id)) {
                 var el = document.createElement('div');
-                el.style.cssText = 'display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;';
-                var name = escapeHtml(it.name) + ' x' + it.quantity;
+                el.style.cssText = 'display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;';
+                var name = escapeHtml(it.name);
+                var breakdown = '₱' + it.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '/' + escapeHtml(it.unit) + ' × ' + it.quantity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + escapeHtml(it.unit);
                 var price = '₱' + it.subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 total += it.subtotal;
-                el.innerHTML = '<div style="color:#555;">' + name + '</div><div style="color:#333; font-weight:600;">' + price + '</div>';
+                el.innerHTML = '<div style="color:#555;"><strong>' + name + '</strong><br><small style="color:#999;">' + breakdown + '</small></div><div style="color:#333; font-weight:600; text-align:right;">' + price + '</div>';
                 list.appendChild(el);
             }
         });

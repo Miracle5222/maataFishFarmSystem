@@ -1,5 +1,6 @@
 <?php include 'auth_admin.php'; ?>
 <?php include 'partials/head.php'; ?>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
 
@@ -132,9 +133,9 @@
         }
     }
 
-// Get all active and pending rentals
+// Get all rentals (pending, active, completed) in one DataTable
 $rentals = [];
-$rentals_stmt = $conn->prepare("SELECT br.id, br.customer_id, c.first_name, c.last_name, br.boat_name, br.rental_start, br.rental_end, br.hours_rented, br.hourly_rate, br.total_amount, br.num_people, br.status, br.notes FROM boat_rentals br LEFT JOIN customers c ON br.customer_id = c.id WHERE br.status IN ('pending', 'active') ORDER BY br.rental_start DESC LIMIT 50");
+$rentals_stmt = $conn->prepare("SELECT br.id, br.customer_id, c.first_name, c.last_name, br.boat_name, br.rental_start, br.rental_end, br.hours_rented, br.hourly_rate, br.total_amount, br.num_people, br.status, br.notes FROM boat_rentals br LEFT JOIN customers c ON br.customer_id = c.id ORDER BY br.rental_start DESC LIMIT 100");
 if ($rentals_stmt) {
     $rentals_stmt->execute();
     $rentals_res = $rentals_stmt->get_result();
@@ -143,6 +144,7 @@ if ($rentals_stmt) {
     }
     $rentals_stmt->close();
 }
+
 
 // Get all customers for dropdown (limit to boat renters or all)
 $customers = [];
@@ -295,15 +297,15 @@ if ($cust_stmt) {
             </div>
         </div>
 
-        <!-- Active Rentals Table -->
+        <!-- All Boat Rentals Table -->
         <div class="card">
             <div class="card-header">
-                <h5 class="card-header-title">📋 Active & Pending Rentals</h5>
+                <h5 class="card-header-title">📋 All Boat Rentals (Pending, Active, Completed, Cancelled)</h5>
             </div>
             <div class="card-body">
                 <?php if (!empty($rentals)): ?>
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover">
+                    <table id="boatRentalsTable" class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -330,13 +332,27 @@ if ($cust_stmt) {
                                 <td>₱<?php echo number_format($rental['hourly_rate'], 2); ?></td>
                                 <td><strong>₱<?php echo number_format($rental['total_amount'], 2); ?></strong></td>
                                 <td>
-                                    <span class="badge badge-<?php echo ($rental['status'] === 'active') ? 'success' : 'warning'; ?>">
-                                        <?php echo ucfirst($rental['status']); ?>
-                                    </span>
+                                    <?php
+                                    $statusClass = 'secondary';
+                                    switch (strtolower($rental['status'])) {
+                                        case 'active': $statusClass = 'success'; break;
+                                        case 'pending': $statusClass = 'warning'; break;
+                                        case 'completed': $statusClass = 'info'; break;
+                                        case 'cancelled': $statusClass = 'danger'; break;
+                                    }
+                                    ?>
+                                    <span class="badge badge-<?php echo $statusClass; ?>"><?php echo ucfirst($rental['status']); ?></span>
                                 </td>
                                 <td>
-                           
-                                    <button class="btn btn-sm btn-icon btn-outline-danger btn-cancel-rental" data-rental-id="<?php echo $rental['id']; ?>" title="Delete/Cancel Rental">
+                                    <?php if (in_array(strtolower($rental['status']), ['pending', 'active'])): ?>
+                                        <button class="btn btn-sm btn-icon btn-outline-success btn-done-rental" data-rental-id="<?php echo $rental['id']; ?>" title="Mark as Done - Complete Rental">
+                                            <i class="feather icon-check-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-outline-danger btn-cancel-rental" data-rental-id="<?php echo $rental['id']; ?>" title="Cancel Rental">
+                                            <i class="feather icon-x"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                    <button class="btn btn-sm btn-icon btn-outline-dark btn-delete-rental" data-rental-id="<?php echo $rental['id']; ?>" title="Delete Rental">
                                         <i class="feather icon-trash-2"></i>
                                     </button>
                                 </td>
@@ -359,6 +375,19 @@ if ($cust_stmt) {
 <!-- [ Layout content ] End -->
 
 <?php include 'partials/footer.php'; ?>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    if (document.getElementById('boatRentalsTable')) {
+        $('#boatRentalsTable').DataTable({
+            "order": [[0, "desc"]],
+            "pageLength": 25,
+            "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+            "columnDefs": [{ "orderable": false, "targets": -1 }]
+        });
+    }
+});
+</script>
 
 <script>
 // Handle boat selection and display boat details
@@ -429,13 +458,38 @@ now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 document.getElementById('rentalStart').min = now.toISOString().slice(0, 16);
 </script>
 <script>
-// AJAX cancel/delete rental handler
+// AJAX mark as done rental handler
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-done-rental');
+    if (!btn) return;
+    const rentalId = btn.getAttribute('data-rental-id');
+    if (!rentalId) return;
+    if (!confirm('Mark this boat rental as completed? The amount will be recorded in the dashboard revenue.')) return;
+
+    fetch('handlers/boat_rental_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'complete_rental', rental_id: rentalId })
+    }).then(r => r.json()).then(j => {
+        if (j && j.success) {
+            // reload to reflect changes
+            window.location.reload();
+        } else {
+            alert('Failed to complete rental: ' + (j.message || 'Unknown error'));
+        }
+    }).catch(err => {
+        alert('Request failed: ' + err.message);
+    });
+});
+</script>
+<script>
+// AJAX cancel rental handler
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.btn-cancel-rental');
     if (!btn) return;
     const rentalId = btn.getAttribute('data-rental-id');
     if (!rentalId) return;
-    if (!confirm('Are you sure you want to cancel/delete this rental?')) return;
+    if (!confirm('Are you sure you want to cancel this rental?')) return;
 
     fetch('handlers/boat_rental_handler.php', {
         method: 'POST',
@@ -443,10 +497,33 @@ document.addEventListener('click', function(e) {
         body: new URLSearchParams({ action: 'cancel_rental', rental_id: rentalId })
     }).then(r => r.json()).then(j => {
         if (j && j.success) {
-            // reload to reflect changes
             window.location.reload();
         } else {
             alert('Failed to cancel rental: ' + (j.message || 'Unknown error'));
+        }
+    }).catch(err => {
+        alert('Request failed: ' + err.message);
+    });
+});
+</script>
+<script>
+// AJAX delete rental handler
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-delete-rental');
+    if (!btn) return;
+    const rentalId = btn.getAttribute('data-rental-id');
+    if (!rentalId) return;
+    if (!confirm('This will permanently delete the rental record. Continue?')) return;
+
+    fetch('handlers/boat_rental_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'delete_rental', rental_id: rentalId })
+    }).then(r => r.json()).then(j => {
+        if (j && j.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to delete rental: ' + (j.message || 'Unknown error'));
         }
     }).catch(err => {
         alert('Request failed: ' + err.message);

@@ -1,29 +1,76 @@
 <?php
+// Start output buffering to handle any header issues
+ob_start();
 session_start();
-require __DIR__ . '/../config/db.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['client_id'])) {
-    header('Location: login.php');
-    exit;
+// Error logging function
+function logError($message) {
+    $log_file = __DIR__ . '/../logs/id_verification_errors.log';
+    @mkdir(dirname($log_file), 0777, true);
+    $timestamp = date('Y-m-d H:i:s');
+    error_log("[$timestamp] $message\n", 3, $log_file);
 }
 
-$customer_id = intval($_SESSION['client_id']);
-$redirect_from = isset($_GET['redirect']) ? htmlspecialchars($_GET['redirect']) : null;
+// Set error handler
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    logError("PHP Error: $errstr in $errfile:$errline");
+});
 
-// Get customer data
-$stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at, updated_at FROM customers WHERE id = ?");
-$stmt->bind_param('i', $customer_id);
-$stmt->execute();
-$result = $stmt->get_result();
+// Safety check - redirect to index if any errors occur
+try {
+    if (!file_exists(__DIR__ . '/../config/db.php')) {
+        throw new Exception('Database config not found');
+    }
+    
+    require __DIR__ . '/../config/db.php';
+    
+    if (!isset($conn)) {
+        throw new Exception('Database connection not initialized');
+    }
+    
+    // Check if user is logged in
+    if (!isset($_SESSION['client_id'])) {
+        ob_end_clean();
+        header('Location: login.php');
+        exit;
+    }
 
-if ($result->num_rows == 0) {
-    header('Location: login.php');
+    $customer_id = intval($_SESSION['client_id']);
+    $redirect_from = isset($_GET['redirect']) ? htmlspecialchars($_GET['redirect']) : null;
+
+    // Get customer data
+    $query = "SELECT government_id_verified, government_id_image, id_verification_date, created_at FROM customers WHERE id = ?";
+    $stmt = $conn->prepare($query);
+
+    if (!$stmt) {
+        throw new Exception('Database prepare failed: ' . $conn->error);
+    }
+
+    $stmt->bind_param('i', $customer_id);
+    if (!$stmt->execute()) {
+        throw new Exception('Database execute failed: ' . $stmt->error);
+    }
+
+    $result = $stmt->get_result();
+
+    if ($result->num_rows == 0) {
+        $stmt->close();
+        ob_end_clean();
+        header('Location: login.php');
+        exit;
+    }
+
+    $customer = $result->fetch_assoc();
+    $stmt->close();
+    
+    ob_end_clean();
+    
+} catch (Exception $e) {
+    logError('Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    ob_end_clean();
+    header('Location: index.php');
     exit;
 }
-
-$customer = $result->fetch_assoc();
-$stmt->close();
 
 // Generate or use existing CSRF token to prevent form resubmission
 if (!isset($_SESSION['id_verification_token'])) {
@@ -43,123 +90,118 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'reupload') {
-    // Check CSRF token to prevent resubmission
-    $submitted_token = $_POST['verification_token'] ?? '';
-    
-    if (empty($submitted_token) || $submitted_token !== $_SESSION['id_verification_token']) {
-        // Token mismatch - this is a refresh attempt or invalid submission
-        // Don't process the file, just redirect to prevent browser resubmission warning
-        if (!empty($submitted_token)) {
-            // This means they're trying to resubmit after the token was changed (refresh case)
-            header('Location: id_verification.php?success=1');
-            exit;
-        }
-        $message = 'Invalid request. Please try again.';
-        $message_type = 'error';
-    } elseif (!isset($_FILES['government_id_image'])) {
-        $message = 'No file selected';
-        $message_type = 'error';
-    } else {
-        $file = $_FILES['government_id_image'];
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $max_size = 5 * 1024 * 1024; // 5MB
+    try {
+        // Check CSRF token to prevent resubmission
+        $submitted_token = $_POST['verification_token'] ?? '';
         
-        // Validate file
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $message = 'File upload error occurred';
-
+        if (empty($submitted_token) || $submitted_token !== $_SESSION['id_verification_token']) {
+            // Token mismatch - this is a refresh attempt or invalid submission
+            // Don't process the file, just redirect to prevent browser resubmission warning
+            if (!empty($submitted_token)) {
+                // This means they're trying to resubmit after the token was changed (refresh case)
+                ob_end_clean();
+                header('Location: id_verification.php?success=1');
+                exit;
+            }
+            $message = 'Invalid request. Please try again.';
             $message_type = 'error';
-        } elseif (!in_array($file['type'], $allowed_types)) {
-            $message = 'Invalid file type. Please upload a JPG, PNG, or GIF image';
-            $message_type = 'error';
-        } elseif ($file['size'] > $max_size) {
-            $message = 'File is too large. Maximum size is 5MB';
+        } elseif (!isset($_FILES['government_id_image'])) {
+            $message = 'No file selected';
             $message_type = 'error';
         } else {
-            // Create upload directory if it doesn't exist
-            if (!is_dir(__DIR__ . '/../assets/img/customer_ids')) {
-                mkdir(__DIR__ . '/../assets/img/customer_ids', 0755, true);
-            }
+            $file = $_FILES['government_id_image'];
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+            $max_size = 5 * 1024 * 1024; // 5MB
             
-            // Store old image path for potential cleanup
-            $old_image = $customer['government_id_image'];
-            
-            // Generate unique filename
-            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $filename = 'govid_' . strtolower(str_replace(' ', '_', $_SESSION['client_name'])) . '_' . uniqid() . '.' . $ext;
-            $filepath = __DIR__ . '/../assets/img/customer_ids/' . $filename;
-            
-            if (move_uploaded_file($file['tmp_name'], $filepath)) {
-                // Update database with new image and mark as resubmitted
-                $now = date('Y-m-d H:i:s');
-                
-                // First, try with updated_at (for resubmission tracking)
-                $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0, updated_at = ? WHERE id = ?");
-                
-                if (!$stmt) {
-                    // Fallback if updated_at column doesn't exist (add it automatically)
-                    $conn->query("ALTER TABLE customers ADD COLUMN updated_at TIMESTAMP NULL");
-                    $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0, updated_at = ? WHERE id = ?");
-                }
-                
-                if ($stmt) {
-                    $stmt->bind_param('ssi', $filename, $now, $customer_id);
-                    
-                    if ($stmt->execute()) {
-                        $stmt->close();
-                        
-                        // Log the resubmission activity (optional - don't break main flow if it fails)
-                        $activity_desc = 'Resubmitted government ID for verification (updated from: ' . ($old_image ? basename($old_image) : 'none') . ')';
-                        $user_type = 'customer';
-                        $activity_type = 'id_resubmission';
-                        
-                        $log_stmt = @$conn->prepare("INSERT INTO activity_logs (user_id, user_type, activity_type, description, created_at) VALUES (?, ?, ?, ?, NOW())");
-                        if ($log_stmt) {
-                            @$log_stmt->bind_param('isss', $customer_id, $user_type, $activity_type, $activity_desc);
-                            @$log_stmt->execute();
-                            @$log_stmt->close();
-                        }
-                        
-                        // Delete old image file if exists
-                        if ($old_image) {
-                            $old_filepath = __DIR__ . '/../assets/img/customer_ids/' . $old_image;
-                            if (file_exists($old_filepath)) {
-                                @unlink($old_filepath);
-                            }
-                        }
-                        
-                        $message = '✅ Government ID updated successfully! Your new ID is now pending verification. The admin will review it shortly.';
-                        $message_type = 'success';
-                        
-                        // Refresh customer data
-                        $refresh_stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at, updated_at FROM customers WHERE id = ?");
-                        $refresh_stmt->bind_param('i', $customer_id);
-                        $refresh_stmt->execute();
-                        $refresh_result = $refresh_stmt->get_result();
-                        $customer = $refresh_result->fetch_assoc();
-                        $refresh_stmt->close();
-                        
-                        // Regenerate token to prevent resubmission on page refresh
-                        $_SESSION['id_verification_token'] = bin2hex(random_bytes(32));
-                        
-                        // Redirect to prevent form resubmission on page refresh
-                        header('Location: id_verification.php?success=1');
-                        exit;
-                    } else {
-                        @unlink($filepath);
-                        $message = 'Failed to save file information';
-                        $message_type = 'error';
-                    }
-                } else {
-                    @unlink($filepath);
-                    $message = 'Failed to process file';
-                    $message_type = 'error';
-                }
-            } else {
-                $message = 'Failed to upload file';
+            // Validate file
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                $message = 'File upload error occurred';
                 $message_type = 'error';
+            } elseif (!in_array($file['type'], $allowed_types)) {
+                $message = 'Invalid file type. Please upload a JPG, PNG, or GIF image';
+                $message_type = 'error';
+            } elseif ($file['size'] > $max_size) {
+                $message = 'File is too large. Maximum size is 5MB';
+                $message_type = 'error';
+            } else {
+                // Create upload directory if it doesn't exist
+                if (!is_dir(__DIR__ . '/../assets/img/customer_ids')) {
+                    mkdir(__DIR__ . '/../assets/img/customer_ids', 0755, true);
+                }
+                
+                // Store old image path for potential cleanup
+                $old_image = $customer['government_id_image'];
+                
+                // Generate unique filename
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $client_name = isset($_SESSION['client_name']) ? strtolower(str_replace(' ', '_', $_SESSION['client_name'])) : 'customer_' . $customer_id;
+                $filename = 'govid_' . $client_name . '_' . uniqid() . '.' . $ext;
+                $filepath = __DIR__ . '/../assets/img/customer_ids/' . $filename;
+                
+                if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                    // Update database with new image and mark as resubmitted
+                    // Use simple update without updated_at column
+                    $stmt = $conn->prepare("UPDATE customers SET government_id_image = ?, government_id_verified = 0 WHERE id = ?");
+                    
+                    if (!$stmt) {
+                        throw new Exception('Database prepare error: ' . $conn->error);
+                    }
+                    
+                    $stmt->bind_param('si', $filename, $customer_id);
+                    
+                    if (!$stmt->execute()) {
+                        throw new Exception('Database execute error: ' . $stmt->error);
+                    }
+                    
+                    $stmt->close();
+                    
+                    // Log the resubmission activity (optional - don't break main flow if it fails)
+                    $activity_desc = 'Resubmitted government ID for verification (updated from: ' . ($old_image ? basename($old_image) : 'none') . ')';
+                    $user_type = 'customer';
+                    $activity_type = 'id_resubmission';
+                    
+                    $log_stmt = @$conn->prepare("INSERT INTO activity_logs (user_id, user_type, activity_type, description) VALUES (?, ?, ?, ?)");
+                    if ($log_stmt) {
+                        @$log_stmt->bind_param('isss', $customer_id, $user_type, $activity_type, $activity_desc);
+                        @$log_stmt->execute();
+                        @$log_stmt->close();
+                    }
+                    
+                    // Delete old image file if exists
+                    if ($old_image) {
+                        $old_filepath = __DIR__ . '/../assets/img/customer_ids/' . $old_image;
+                        if (file_exists($old_filepath)) {
+                            @unlink($old_filepath);
+                        }
+                    }
+                    
+                    $message = '✅ Government ID updated successfully! Your new ID is now pending verification. The admin will review it shortly.';
+                    $message_type = 'success';
+                    
+                    // Refresh customer data
+                    $refresh_stmt = $conn->prepare("SELECT government_id_verified, government_id_image, id_verification_date, created_at FROM customers WHERE id = ?");
+                    $refresh_stmt->bind_param('i', $customer_id);
+                    $refresh_stmt->execute();
+                    $refresh_result = $refresh_stmt->get_result();
+                    $customer = $refresh_result->fetch_assoc();
+                    $refresh_stmt->close();
+                    
+                    // Regenerate token to prevent resubmission on page refresh
+                    $_SESSION['id_verification_token'] = bin2hex(random_bytes(32));
+                    
+                    // Redirect to prevent form resubmission on page refresh
+                    ob_end_clean();
+                    header('Location: id_verification.php?success=1');
+                    exit;
+                } else {
+                    throw new Exception('File upload failed: ' . $file['tmp_name']);
+                }
             }
         }
+    } catch (Exception $e) {
+        logError('POST Error: ' . $e->getMessage());
+        $message = 'Error: ' . $e->getMessage(); // Show actual error for debugging
+        $message_type = 'error';
     }
 }
 

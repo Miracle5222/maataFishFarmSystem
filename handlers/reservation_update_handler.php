@@ -69,6 +69,44 @@ $stmt = $conn->prepare($update_query);
 $stmt->bind_param("si", $status, $id);
 
 if ($stmt->execute()) {
+    // If status is completed (checkout), calculate and store the total_amount
+    if ($status === 'completed') {
+        $fetch_q = "SELECT r.cottage_id, r.reservation_type FROM reservations r WHERE r.id = ? LIMIT 1";
+        $gstmt = $conn->prepare($fetch_q);
+        if ($gstmt) {
+            $gstmt->bind_param('i', $id);
+            $gstmt->execute();
+            $res = $gstmt->get_result();
+            if ($res && $row = $res->fetch_assoc()) {
+                // For cottage reservations, calculate total_amount based on price
+                if ($row['reservation_type'] === 'cottage' && $row['cottage_id']) {
+                    $cottage_id = $row['cottage_id'];
+                    $price_q = "SELECT price FROM cottages WHERE id = ?";
+                    $pstmt = $conn->prepare($price_q);
+                    if ($pstmt) {
+                        $pstmt->bind_param('i', $cottage_id);
+                        $pstmt->execute();
+                        $pres = $pstmt->get_result();
+                        if ($pres && $prow = $pres->fetch_assoc()) {
+                            $cottage_price = floatval($prow['price']);
+                            // Total amount is the cottage price for the entire stay/reservation (flat rate)
+                            $total_amount = $cottage_price;
+                            $update_amount = "UPDATE reservations SET total_amount = ? WHERE id = ?";
+                            $amstmt = $conn->prepare($update_amount);
+                            if ($amstmt) {
+                                $amstmt->bind_param('di', $total_amount, $id);
+                                $amstmt->execute();
+                                $amstmt->close();
+                            }
+                        }
+                        $pstmt->close();
+                    }
+                }
+            }
+            $gstmt->close();
+        }
+    }
+    
     // If status is confirmed (approved), mark the availability slot as booked
     if ($status === 'confirmed') {
         // Get reservation details to find the cottage and time
@@ -113,8 +151,8 @@ if ($stmt->execute()) {
             $gstmt->close();
         }
     }
-    // If status is cancelled, mark the availability slot back as available
-    elseif ($status === 'cancelled') {
+    // If status is cancelled or completed, mark the availability slot back as available
+    elseif ($status === 'cancelled' || $status === 'completed') {
         $fetch_q = "SELECT r.cottage_id, r.reservation_date, r.reservation_time FROM reservations r WHERE r.id = ? LIMIT 1";
         $gstmt = $conn->prepare($fetch_q);
         if ($gstmt) {

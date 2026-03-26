@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $customer_name = trim($_POST['customer_name'] ?? '');
 $customer_contact = trim($_POST['customer_contact'] ?? '');
 $product_id = (int) ($_POST['product_id'] ?? 0);
-$quantity = (int) ($_POST['quantity'] ?? 0);
+$quantity = (float) ($_POST['quantity'] ?? 0);  // Changed from (int) to (float) to support decimal quantities
 $delivery_date = $_POST['delivery_date'] ?? null;
 
 if ($customer_name === '' || $customer_contact === '' || $product_id <= 0 || $quantity <= 0) {
@@ -79,7 +79,7 @@ $total = $subtotal;
 // Create order_number simple
 $order_number = 'ORD' . time() . rand(100, 999);
 
-$insOrder = $conn->prepare('INSERT INTO orders (order_number, customer_id, delivery_date, total_amount, status, notes) VALUES (?, ?, ?, ?, ?, ?)');
+$insOrder = $conn->prepare('INSERT INTO orders (order_number, customer_id, delivery_date, total_amount, status, notes, is_manual) VALUES (?, ?, ?, ?, ?, ?, 0)');
 $status = 'pending';
 $notes = 'Client order from booking page';
 if (!$insOrder) {
@@ -97,17 +97,32 @@ if (!$ok || !$order_id) {
 }
 
 // Insert order item
+// Extract values into variables for proper binding
+$insert_order_id = (int)$order_id;
+$insert_product_id = (int)$product_id;
+$insert_quantity = (float)$quantity;
+$insert_unit_price = (float)$unit_price;
+$insert_subtotal = (float)$subtotal;
+
+$qty_str = (string)$insert_quantity;
+$price_str = (string)$insert_unit_price;
+$subtotal_str = (string)$insert_subtotal;
+
 $insItem = $conn->prepare('INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)');
 if ($insItem) {
-    $insItem->bind_param('iiidd', $order_id, $product_id, $quantity, $unit_price, $subtotal);
+    $insItem->bind_param('iisss', $insert_order_id, $insert_product_id, $qty_str, $price_str, $subtotal_str);
     $insItem->execute();
     $insItem->close();
 }
 
 // Decrease fish stock
+$update_qty = (float)$quantity;
+$update_product_id = (int)$product_id;
+$update_qty_str = (string)$update_qty;
+
 $updateStock = $conn->prepare('UPDATE fish_species SET stock = GREATEST(stock - ?, 0) WHERE id = ?');
 if ($updateStock) {
-    $updateStock->bind_param('ii', $quantity, $product_id);
+    $updateStock->bind_param('si', $update_qty_str, $update_product_id);
     $updateStock->execute();
     $updateStock->close();
 }

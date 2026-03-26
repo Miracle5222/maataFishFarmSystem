@@ -54,9 +54,9 @@ if ($action === 'complete_rental' && $rental_id > 0) {
             'boat_rentals',
             $rental_id,
             'Boat Rental Completion',
-            "Marked rental ID {$rental_id} as completed. Boat: {$rental_data['boat_name']}",
+            "Marked boat rental ID {$rental_id} as completed. Boat: {$rental_data['boat_name']}, Revenue: ₱" . number_format($rental_data['total_amount'], 2),
             null,
-            ['rental_id' => $rental_id, 'boat_name' => $rental_data['boat_name']]
+            ['rental_id' => $rental_id, 'boat_name' => $rental_data['boat_name'], 'total_amount' => $rental_data['total_amount']]
         );
         
         header('Content-Type: application/json');
@@ -126,11 +126,52 @@ elseif ($action === 'cancel_rental' && $rental_id > 0) {
     }
     $update->close();
 }
-else {
-    header('Content-Type: application/json');
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid request']);
-}
+elseif ($action === 'delete_rental' && $rental_id > 0) {
+    // Get rental details for logging and boat status update
+    $rental = $conn->prepare("SELECT * FROM boat_rentals WHERE id = ?");
+    $rental->bind_param('i', $rental_id);
+    $rental->execute();
+    $rental_data = $rental->get_result()->fetch_assoc();
+    $rental->close();
 
-$conn->close();
-?>
+    if (!$rental_data) {
+        header('Content-Type: application/json');
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Rental not found']);
+        exit;
+    }
+
+    $delete = $conn->prepare("DELETE FROM boat_rentals WHERE id = ?");
+    $delete->bind_param('i', $rental_id);
+
+    if ($delete->execute()) {
+        // Return boat to available if the boat exists in inventory and is currently set as rented
+        $boat_update = $conn->prepare("UPDATE boat_inventory SET status = 'available' WHERE boat_name = ? AND status = 'rented'");
+        $boat_update->bind_param('s', $rental_data['boat_name']);
+        $boat_update->execute();
+        $boat_update->close();
+
+        // Log activity
+        require '../handlers/activity_logger.php';
+        logActivity(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE',
+            'boat_rentals',
+            $rental_id,
+            'Boat Rental Deleted',
+            "Deleted boat rental ID {$rental_id}. Boat: {$rental_data['boat_name']}, Status: {$rental_data['status']}",
+            null,
+            ['rental_id' => $rental_id, 'boat_name' => $rental_data['boat_name'], 'status' => $rental_data['status']]
+        );
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'message' => 'Rental deleted successfully']);
+    } else {
+        header('Content-Type: application/json');
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to delete rental']);
+    }
+    $delete->close();
+}

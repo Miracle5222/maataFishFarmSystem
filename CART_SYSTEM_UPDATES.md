@@ -9,16 +9,19 @@ CREATE TABLE `carts` (
   `id` int(11) PRIMARY KEY AUTO_INCREMENT,
   `customer_id` int(11) NOT NULL,
   `fish_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL DEFAULT 1,
+  `quantity` decimal(10,2) NOT NULL DEFAULT 1,
   `unit_price` decimal(10,2) NOT NULL,
-  `created_at` timestamp DEFAULT current_timestamp(),
-  `updated_at` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `item_type` enum('fish','product') DEFAULT 'fish',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `unique_cart_item` (`customer_id`,`fish_id`),
   KEY `idx_customer` (`customer_id`),
   KEY `idx_product` (`fish_id`),
   CONSTRAINT `carts_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
 )
 ```
+
+**Key Fix:** Changed `quantity` from `int(11)` to `decimal(10,2)` to support decimal weights like 0.1, 0.3, 0.5 kg
 
 ## Files Updated
 

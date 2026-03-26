@@ -246,3 +246,78 @@ Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server S
 Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
 
 ---
+[2026-02-25 00:11:44] Email sent to mia@gmail.com | reservation: RES-20260128-1772 | status: confirmed
+[2026-02-25 00:20:49] Email sent to mia@gmail.com | reservation: RES-20260128-1772 | status: completed
+[2026-02-25 00:20:59] Email sent to bing@gmail.com | reservation: RES-20260224-1869 | status: completed
+[2026-02-25 00:27:51] Email sent to bing@gmail.com | reservation: RES-20260225-0726 | status: completed
+[2026-02-25 00:27:57] Email sent to bing@gmail.com | reservation: RES-20260225-4135 | status: completed
+[2026-02-25 00:28:03] Email sent to bing@gmail.com | reservation: RES-20260225-0844 | status: completed
+[2026-02-25 00:33:57] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260225-2459 | status: completed
+[2026-02-25 00:34:40] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260225-3986 | status: completed
+[2026-02-25 00:37:51] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260225-0714 | status: completed
+[2026-02-25 00:40:22] Email sent to sample@gmail.com | reservation: RES-20260225-6199 | status: confirmed
+[2026-02-25 00:50:05] Email sent to sample@gmail.com | reservation: RES-20260225-6355 | status: confirmed
+[2026-02-25 00:50:14] Email sent to sample@gmail.com | reservation: RES-20260225-6199 | status: completed
+[2026-02-25 00:50:18] Email sent to sample@gmail.com | reservation: RES-20260225-6355 | status: completed
+[2026-02-25 00:50:22] Email sent to roneilbansas5222@gmail.com | reservation: RES-20260225-0227 | status: completed
+[2026-02-25 08:51:48] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260225-4934 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:17:53] Email FAILED for sample@gmail.com | reservation: RES-20260225-4243 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:18:03] Email FAILED for sample@gmail.com | reservation: RES-20260225-4243 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:35:39] Email FAILED for roneilbansas5222@gmail.com | reservation: RES-20260225-5470 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:36:15] Email FAILED for sample@gmail.com | reservation: RES-20260225-3809 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:36:23] Email FAILED for sample@gmail.com | reservation: RES-20260225-3809 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:52:03] Email FAILED for sample@gmail.com | reservation: RES-20260225-2711 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-02-25 09:52:08] Email FAILED for sample@gmail.com | reservation: RES-20260225-2711 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-16 00:49:10] Email sent to man@gmail.com | reservation: RES-20260316-5336 | status: confirmed
+[2026-03-26 14:39:52] Email FAILED for sample@gmail.com | reservation: RES-20260225-8925 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:40:05] Email FAILED for sample@gmail.com | reservation: RES-20260225-8925 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:44:03] Email FAILED for sample@gmail.com | reservation: RES-20260326-1142 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:48:34] Email FAILED for sample@gmail.com | reservation: RES-20260326-4502 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:49:07] Email FAILED for sample@gmail.com | reservation: RES-20260326-4502 | status: confirmed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:49:46] Email FAILED for sample@gmail.com | reservation: RES-20260225-8925 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---
+[2026-03-26 14:50:31] Email FAILED for sample@gmail.com | reservation: RES-20260326-4502 | status: completed
+Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server SMTP code: 10060 Additional SMTP info: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+
+---

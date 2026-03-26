@@ -5,7 +5,12 @@
 
 <div class="layout-content">
     <div class="container-fluid flex-grow-1 container-p-y">
-        <h4 class="font-weight-bold py-3 mb-0">Menu Orders — View</h4>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h4 class="font-weight-bold py-3 mb-1">🍽️ Direct Menu Orders</h4>
+                <p class="text-muted small mb-0">Menu orders created directly by admin staff</p>
+            </div>
+        </div>
         <div class="card mt-3">
             <div class="table-responsive">
                 <table id="menuOrdersTable" class="table table-sm mb-0">
@@ -13,7 +18,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Order #</th>
-      
+                            <th>Placed By</th>
                             <th>Items</th>
                             <th>Total</th>
                             <th>Status</th>
@@ -30,7 +35,7 @@
                         if (!$stmt) {
                             // show database error in table for easier debugging
                             $dberr = $conn->error;
-                            echo '<tr><td colspan="9" class="text-danger text-center py-3">DB error: ' . htmlspecialchars($dberr) . '</td></tr>';
+                            echo '<tr><td colspan="8" class="text-danger text-center py-3">DB error: ' . htmlspecialchars($dberr) . '</td></tr>';
                         }
                         if ($stmt) {
                             $stmt->execute();
@@ -40,9 +45,9 @@
                         }
 
                         if (empty($rows)) {
-                            // DataTables requires the same number of cells as headers — output 7 tds total
+                            // DataTables requires the same number of cells as headers — output 8 tds total
                             echo '<tr>';
-                            echo '<td class="text-center text-muted py-4" colspan="7">No menu orders found.</td>';
+                            echo '<td class="text-center text-muted py-4" colspan="8">No direct menu orders found.</td>';
                             echo '</tr>';
                         } else {
                             foreach ($rows as $r):
@@ -71,14 +76,14 @@
                         <tr>
                             <td><?php echo (int)$r['id']; ?></td>
                             <td><strong><?php echo htmlspecialchars($r['order_number']); ?></strong></td>
-                      
-                   
+                            <td><?php echo htmlspecialchars($placedBy); ?></td>
                             <td><?php echo (int)$cnt; ?> item(s)</td>
                             <td><strong>₱<?php echo number_format($r['total_amount'],2); ?></strong></td>
                             <td><span class="badge <?php echo $statusClass; ?>"><?php echo htmlspecialchars(ucfirst($r['status'])); ?></span></td>
                             <td><?php echo htmlspecialchars(date('M d, Y H:i', strtotime($r['created_at']))); ?></td>
                             <td class="text-right">
                                 <button class="btn btn-sm btn-icon btn-outline-info view-menu-order" data-id="<?php echo (int)$r['id']; ?>" title="View"><i class="feather icon-eye"></i></button>
+                                <button class="btn btn-sm btn-icon btn-outline-danger delete-menu-order" data-id="<?php echo (int)$r['id']; ?>" data-order="<?php echo htmlspecialchars($r['order_number']); ?>" title="Delete"><i class="feather icon-trash-2"></i></button>
                             </td>
                         </tr>
                         <?php endforeach; } ?>
@@ -96,11 +101,41 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
 $(function(){
-    $('#menuOrdersTable').DataTable({ order:[[0,'desc']], pageLength:10, columnDefs:[{ orderable:false, targets:6 }] });
+    $('#menuOrdersTable').DataTable({ order:[[0,'desc']], pageLength:10, columnDefs:[{ orderable:false, targets:7 }] });
 
     $('#menuOrdersTable').on('click', '.view-menu-order', function(){
         var id = $(this).data('id');
         window.location = 'menu_order_detail.php?id=' + id;
+    });
+
+    $('#menuOrdersTable').on('click', '.delete-menu-order', function(){
+        var id = $(this).data('id');
+        var orderNumber = $(this).data('order');
+        
+        if (confirm('Are you sure you want to delete order "' + orderNumber + '"? This action cannot be undone.')) {
+            fetch('handlers/delete_menu_order.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'order_id=' + encodeURIComponent(id),
+                credentials: 'include'
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    alert('Order deleted successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to delete order'));
+                }
+            })
+            .catch(function(e) {
+                console.error('Delete error:', e);
+                alert('Network error: ' + e.message);
+            });
+        }
     });
 });
 </script>

@@ -105,6 +105,11 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 -- SHOW COLUMNS FROM customers WHERE Field IN ('government_id_verified', 'government_id_image', 'created_at', 'updated_at');
 
 -- ============================================================================
+-- 7. ADD TOTAL_AMOUNT COLUMN TO RESERVATIONS (For Revenue Tracking)
+-- ============================================================================
+ALTER TABLE reservations ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10, 2) DEFAULT 0;
+
+-- ============================================================================
 -- EXECUTION INSTRUCTIONS:
 -- ============================================================================
 -- 1. Log into your hosting platform's cPanel

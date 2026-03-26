@@ -314,7 +314,22 @@ if ($clientLoggedIn) {
             }
             try {
                 var qtyEl = document.getElementById('qty_' + id);
-                var qty = parseInt(qtyEl ? qtyEl.value : 1) || 1;
+                var inputValue = qtyEl ? qtyEl.value : '1';
+                var qty = parseFloat(inputValue) || 1;
+                
+                console.log('addToCart Debug:', {
+                    fish_id: id,
+                    qty_element_id: 'qty_' + id,
+                    element_found: qtyEl ? true : false,
+                    input_value: inputValue,
+                    parsed_qty: qty
+                });
+                
+                // Validate quantity is positive
+                if (qty <= 0) {
+                    alert('Please enter a valid quantity');
+                    return;
+                }
                 
                 // Add to database cart via AJAX
                 var formData = new FormData();

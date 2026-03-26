@@ -15,7 +15,12 @@ function formatDateTime($datetime) {
 <div class="layout-content">
     <!-- [ content ] Start -->
     <div class="container-fluid flex-grow-1 container-p-y">
-        <h4 class="font-weight-bold py-3 mb-0">Orders — View Orders</h4>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h4 class="font-weight-bold py-3 mb-1">🐟 Online Fish Orders</h4>
+                <p class="text-muted small mb-0">Orders placed by customers through the online platform</p>
+            </div>
+        </div>
         <div class="card mt-3">
             <div class="table-responsive">
                 <table id="ordersTable" class="table table-sm mb-0">
@@ -36,7 +41,20 @@ function formatDateTime($datetime) {
                         <?php
                         require __DIR__ . '/config/db.php';
                         $orders = [];
-                        $stmt = $conn->prepare('SELECT o.id, o.order_number, o.customer_id, c.first_name, c.last_name, c.email, o.total_amount, o.status, o.order_date, o.pickup_date FROM orders o JOIN customers c ON o.customer_id = c.id ORDER BY o.id DESC');
+                        // Filter for online FISH orders only (is_manual = 0, must contain fish items)
+                        $stmt = $conn->prepare('
+                            SELECT DISTINCT o.id, o.order_number, o.customer_id, c.first_name, c.last_name, c.email, 
+                                   o.total_amount, o.status, o.order_date, o.pickup_date
+                            FROM orders o 
+                            LEFT JOIN customers c ON o.customer_id = c.id
+                            WHERE o.is_manual = 0 
+                            AND EXISTS (
+                                SELECT 1 FROM order_items oi 
+                                JOIN fish_species fs ON oi.product_id = fs.fish_id 
+                                WHERE oi.order_id = o.id
+                            )
+                            ORDER BY o.id DESC
+                        ');
                         if ($stmt) {
                             $stmt->execute();
                             $res = $stmt->get_result();
@@ -47,7 +65,7 @@ function formatDateTime($datetime) {
                         }
                         
                         if (empty($orders)) {
-                            echo '<tr><td colspan="9" class="text-center text-muted py-4">No orders found.</td></tr>';
+                            echo '<tr><td colspan="9" class="text-center text-muted py-4">No online fish orders found.</td></tr>';
                         } else {
                             foreach ($orders as $o):
                                 // Get item count for this order
@@ -90,7 +108,17 @@ function formatDateTime($datetime) {
                         <tr>
                             <td><?php echo (int)$o['id']; ?></td>
                             <td><strong><?php echo htmlspecialchars($o['order_number']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($o['first_name'] . ' ' . $o['last_name']); ?><br><small style="color:#999;"><?php echo htmlspecialchars($o['email']); ?></small></td>
+                            <td>
+                                <?php 
+                                $customer_name = trim(($o['first_name'] ?? '') . ' ' . ($o['last_name'] ?? ''));
+                                if (empty($customer_name)) {
+                                    echo '<em style="color:#999;">Customer not found</em>';
+                                } else {
+                                    echo htmlspecialchars($customer_name);
+                                }
+                                ?>
+                                <br><small style="color:#999;"><?php echo htmlspecialchars($o['email'] ?? ''); ?></small>
+                            </td>
                             <td><?php echo $itemCount; ?> item(s)</td>
                             <td><strong>₱<?php echo number_format($o['total_amount'], 2); ?></strong></td>
                             <td><span style="background-color:<?php echo $statusBg; ?>; color:<?php echo $statusColor; ?>; padding:6px 12px; border-radius:4px; font-weight:600; font-size:12px;"><?php echo htmlspecialchars(ucfirst($o['status'])); ?></span></td>

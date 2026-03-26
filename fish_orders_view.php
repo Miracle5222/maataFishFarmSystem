@@ -7,7 +7,12 @@
 <div class="layout-content">
     <!-- [ content ] Start -->
     <div class="container-fluid flex-grow-1 container-p-y">
-        <h4 class="font-weight-bold py-3 mb-0">Fish Orders — View</h4>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h4 class="font-weight-bold py-3 mb-1">🚶 Walk-in Fish Orders</h4>
+                <p class="text-muted small mb-0">Direct orders created at the counter by staff for walk-in customers</p>
+            </div>
+        </div>
         <div class="card mt-3">
             <div class="table-responsive">
                 <table id="fishOrdersTable" class="table table-sm mb-0">
@@ -42,7 +47,7 @@
                         }
 
                         if (empty($rows)) {
-                            echo '<tr><td colspan="8" class="text-center text-muted py-4">No fish orders found.</td></tr>';
+                            echo '<tr><td colspan="8" class="text-center text-muted py-4">No walk-in fish orders found.</td></tr>';
                         } else {
                             foreach ($rows as $r):
                                 // count items

@@ -20,8 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Include database config
+// Include database config and activity logger
 @require_once __DIR__ . '/../config/db.php';
+@require_once __DIR__ . '/activity_logger.php';
 
 // If we can't connect to database, redirect
 if (!isset($conn) || !$conn) {
@@ -76,7 +77,7 @@ $items = [];
 foreach ($cart as $it) {
     $item_id = (int) ($it['item_id'] ?? $it['id'] ?? 0);
     $item_type = $it['item_type'] ?? 'fish';
-    $qty = (int) ($it['qty'] ?? 0);
+    $qty = (float) ($it['qty'] ?? 0);  // Changed from (int) to (float) to preserve decimals
     
     if ($item_id <= 0 || $qty <= 0) {
         continue;
@@ -125,7 +126,7 @@ if (empty($items)) {
 $order_number = 'ORD' . date('YmdHis') . rand(100, 999);
 
 // Insert order
-$stmt = $conn->prepare('INSERT INTO orders (order_number, customer_id, pickup_date, total_amount, status, notes) VALUES (?, ?, ?, ?, ?, ?)');
+$stmt = $conn->prepare('INSERT INTO orders (order_number, customer_id, pickup_date, total_amount, status, notes, is_manual) VALUES (?, ?, ?, ?, ?, ?, 0)');
 
 if (!$stmt) {
     $_SESSION['cart_error'] = 'Failed to create order';
@@ -159,22 +160,38 @@ if (!$order_id) {
 
 // Insert order items
 foreach ($items as $item) {
+    // Extract values into variables for proper binding
+    $insert_order_id = (int)$order_id;
+    $insert_product_id = (int)$item['item_id'];
+    $insert_quantity = (float)$item['quantity'];
+    $insert_unit_price = (float)$item['unit_price'];
+    $insert_subtotal = (float)$item['subtotal'];
+    
     $stmt = $conn->prepare('INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)');
     
     if ($stmt) {
-        $stmt->bind_param('iiidd', $order_id, $item['item_id'], $item['quantity'], $item['unit_price'], $item['subtotal']);
+        // Use string binding for decimals to ensure proper conversion
+        $qty_str = (string)$insert_quantity;
+        $price_str = (string)$insert_unit_price;
+        $subtotal_str = (string)$insert_subtotal;
+        
+        $stmt->bind_param('iisss', $insert_order_id, $insert_product_id, $qty_str, $price_str, $subtotal_str);
         $stmt->execute();
         $stmt->close();
     }
     
     // Update stock
+    $update_qty = (float)$item['quantity'];
+    $update_item_id = (int)$item['item_id'];
+    $update_qty_str = (string)$update_qty;
+    
     if ($item['item_type'] === 'fish') {
         $stmt = $conn->prepare('UPDATE fish_species SET stock = GREATEST(stock - ?, 0) WHERE fish_id = ?');
     } else {
         $stmt = $conn->prepare('UPDATE products SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?');
     }
     if ($stmt) {
-        $stmt->bind_param('ii', $item['quantity'], $item['item_id']);
+        $stmt->bind_param('si', $update_qty_str, $update_item_id);
         $stmt->execute();
         $stmt->close();
     }
@@ -187,6 +204,49 @@ if ($stmt) {
     $stmt->execute();
     $stmt->close();
 }
+
+// Log activity for order creation
+$order_items_summary = '';
+$fish_count = 0;
+$product_count = 0;
+foreach ($items as $item) {
+    if ($item['item_type'] === 'fish') {
+        $fish_count++;
+    } else {
+        $product_count++;
+    }
+}
+if ($fish_count > 0) {
+    $order_items_summary .= "$fish_count fish species";
+}
+if ($product_count > 0) {
+    if ($fish_count > 0) $order_items_summary .= ", ";
+    $order_items_summary .= "$product_count menu items";
+}
+
+$description = "Online order #$order_number | Items: $order_items_summary | Total: ₱" . number_format($total, 2) . " | Customer: $customer_name";
+logActivity(
+    $conn,
+    $cid,
+    'customer',
+    'CREATE',
+    'orders',
+    $order_id,
+    $order_number,
+    $description,
+    null,
+    [
+        'order_number' => $order_number,
+        'customer_id' => $cid,
+        'customer_name' => $customer_name,
+        'customer_contact' => $customer_contact,
+        'pickup_date' => $pickup_date,
+        'total_amount' => $total,
+        'items_count' => count($items),
+        'fish_count' => $fish_count,
+        'product_count' => $product_count
+    ]
+);
 
 // Success
 $_SESSION['cart_success'] = 'Order placed successfully! Order #' . $order_number;

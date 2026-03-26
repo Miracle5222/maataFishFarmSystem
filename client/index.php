@@ -76,7 +76,7 @@
                             <p class="card-text text-muted" style="min-height:44px"><?php echo htmlspecialchars(substr($p['description'] ?? '', 0, 100)); ?></p>
                             <p class="font-weight-bold" style="color:#27ae60">₱<?php echo number_format($p['price'], 2); ?> / <?php echo $p['unit']; ?></p>
                             <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-                                <input type="number" min="1" value="1" id="qty_<?php echo $p['fish_id']; ?>" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;" max="<?php echo (int)$p['stock_quantity']; ?>">
+                                <input type="number" min="0.1" step="0.1" value="1" id="qty_<?php echo $p['fish_id']; ?>" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;" max="<?php echo (int)$p['stock_quantity']; ?>" placeholder="kg" title="Enter weight in kg">
                                 <?php if ((int)$p['stock_quantity'] > 0): ?>
                                     <button class="btn btn-success btn-sm" onclick="addToCart(<?php echo $p['fish_id']; ?>,'<?php echo htmlspecialchars(addslashes($p['name'])); ?>',<?php echo $p['price']; ?>,'kg')"><i class="fas fa-cart-plus"></i> Add to Cart</button>
                                 <?php else: ?>

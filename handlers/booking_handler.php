@@ -79,8 +79,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = "Cottage is not available on selected date";
             }
 
-            if ($reservation_time < $cottage['available_time_start'] || $reservation_time > $cottage['available_time_end']) {
-                $errors[] = "Cottage is not available at selected time";
+            // Check time availability - first check cottage_availability table for specific slots
+            if (!empty($errors) === false) {
+                $slot_check = $conn->prepare("SELECT id FROM cottage_availability 
+                                             WHERE cottage_id = ? 
+                                             AND available_date = ? 
+                                             AND TIME(available_time_start) <= TIME(?) 
+                                             AND TIME(available_time_end) > TIME(?)
+                                             AND status = 'available'
+                                             LIMIT 1");
+                if ($slot_check) {
+                    $slot_check->bind_param('isss', $cottage_id, $reservation_date, $reservation_time, $reservation_time);
+                    $slot_check->execute();
+                    $slot_result = $slot_check->get_result();
+                    
+                    if ($slot_result->num_rows === 0) {
+                        // No available slot found - check fallback to cottage table times
+                        if ($reservation_time < $cottage['available_time_start'] || $reservation_time >= $cottage['available_time_end']) {
+                            $errors[] = "Cottage is not available at selected time";
+                        }
+                    }
+                    $slot_check->close();
+                } else {
+                    // If slot check fails, fall back to cottage table validation
+                    if ($reservation_time < $cottage['available_time_start'] || $reservation_time >= $cottage['available_time_end']) {
+                        $errors[] = "Cottage is not available at selected time";
+                    }
+                }
             }
         }
         $cottage_check->close();
@@ -175,6 +200,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($colRes2) $colRes2->free();
         }
 
+        // Note: For cottage reservations, total_amount will be calculated when marked as completed (checkout)
+        // At creation time, total_amount defaults to 0
+
         // Build INSERT statement based on available columns
         $columns = "reservation_number, customer_id, reservation_type, num_guests, reservation_date, reservation_time, special_requests, status, contact_phone, contact_email";
         $placeholders = "?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?";
@@ -195,8 +223,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bindValues[] = $table_id;
         }
 
-        $columns .= ", created_at, updated_at";
-        $placeholders .= ", NOW(), NOW()";
+         $columns .= ", is_manual, created_at, updated_at";
+        $placeholders .= ", 0, NOW(), NOW()";
 
         $insert_reservation = "INSERT INTO reservations (" . $columns . ") VALUES (" . $placeholders . ")";
 

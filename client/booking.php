@@ -200,8 +200,8 @@ try {
                             <select id="cottage_id" name="cottage_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;" onchange="showCottageDetails(this.value)">
                                 <option value="">-- Select a Cottage --</option>
                                 <?php foreach ($cottages as $cottage): ?>
-                                    <option value="<?php echo $cottage['id']; ?>" data-date-from="<?php echo $cottage['available_date_from']; ?>" data-date-to="<?php echo $cottage['available_date_to']; ?>">
-                                        Cottage <?php echo htmlspecialchars($cottage['cottage_number']); ?>
+                                    <option value="<?php echo $cottage['id']; ?>" data-date-from="<?php echo $cottage['available_date_from']; ?>" data-date-to="<?php echo $cottage['available_date_to']; ?>" data-price="<?php echo number_format($cottage['price'], 2); ?>">
+                                        Cottage <?php echo htmlspecialchars($cottage['cottage_number']); ?> — ₱<?php echo number_format($cottage['price'], 2); ?> per stay
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -377,9 +377,9 @@ console.log('Cottage Time Slots:', cottageTimeSlots);
 function formatTime(time) {
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'pm' : 'am';
+    const ampm = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes}${ampm}`;
+    return `${hour12}:${minutes} ${ampm}`;
 }
 
 // Show cottage image when selected

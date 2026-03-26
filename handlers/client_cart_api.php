@@ -37,7 +37,7 @@ if ($action === 'list' || ($_SERVER['REQUEST_METHOD'] === 'GET' && !$action)) {
     while ($row = $res->fetch_assoc()) {
         $item_id = (int)$row['fish_id'];
         $item_type = $row['item_type'];
-        $qty = (int)$row['quantity'];
+        $qty = (float)$row['quantity'];
         $price = (float)$row['unit_price'];
         
         // Fetch item name
@@ -84,7 +84,7 @@ if ($action === 'list' || ($_SERVER['REQUEST_METHOD'] === 'GET' && !$action)) {
 if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $item_id = (int) ($_POST['item_id'] ?? $_POST['product_id'] ?? $_POST['fish_id'] ?? 0);
     $item_type = $_POST['item_type'] ?? 'fish';
-    $quantity = max(1, (int) ($_POST['quantity'] ?? 1));
+    $quantity = max(0.1, (float) ($_POST['quantity'] ?? 1));
     
     // Log the request
     error_log("Cart Add Request - item_id: $item_id, item_type: $item_type, qty: $quantity, cid: $cid");
@@ -161,7 +161,7 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($existing) {
         // Update quantity
-        $newQty = (int)$existing['quantity'] + $quantity;
+        $newQty = (float)$existing['quantity'] + $quantity;
         if ($newQty > $stock) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Not enough stock for updated quantity']);
@@ -174,7 +174,7 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Update prepare failed']);
             exit;
         }
-        $upd->bind_param('ii', $newQty, $existing['id']);
+        $upd->bind_param('di', $newQty, $existing['id']);
         $ok = $upd->execute();
         if (!$ok) {
             error_log("Update execute failed: " . $upd->error);
@@ -187,7 +187,7 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Updated cart item quantity to $newQty");
     } else {
         // Insert new cart item
-        error_log("Inserting cart: cid=$cid, item_id=$item_id, item_type=$item_type, qty=$quantity, price=$unit_price");
+        error_log("Inserting cart: cid=$cid, item_id=$item_id, item_type=$item_type, qty=$quantity (type: " . gettype($quantity) . "), price=$unit_price");
         $ins = $conn->prepare('INSERT INTO carts (customer_id, fish_id, quantity, unit_price, item_type) VALUES (?, ?, ?, ?, ?)');
         if (!$ins) {
             error_log("Insert prepare failed: " . $conn->error);
@@ -195,7 +195,7 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Insert prepare failed', 'debug' => $conn->error]);
             exit;
         }
-        $ins->bind_param('iiids', $cid, $item_id, $quantity, $unit_price, $item_type);
+        $ins->bind_param('iidds', $cid, $item_id, $quantity, $unit_price, $item_type);
         $ok = $ins->execute();
         if (!$ok) {
             error_log("Insert execute failed: " . $ins->error);
@@ -205,7 +205,17 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         $ins->close();
-        error_log("Successfully inserted cart item");
+        error_log("Successfully inserted cart item with qty=$quantity");
+        
+        // Verify what was stored
+        $verify = $conn->prepare('SELECT id, quantity FROM carts WHERE customer_id = ? AND fish_id = ? ORDER BY id DESC LIMIT 1');
+        $verify->bind_param('ii', $cid, $item_id);
+        $verify->execute();
+        $vres = $verify->get_result();
+        if ($vrow = $vres->fetch_assoc()) {
+            error_log("Verification: Stored quantity = " . $vrow['quantity'] . " (type: " . gettype($vrow['quantity']) . ")");
+        }
+        $verify->close();
     }
     
     echo json_encode(['success' => true, 'message' => 'Added to cart']);
@@ -235,7 +245,7 @@ if ($action === 'remove' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // POST /cart/update - update cart item quantity
 if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $cart_id = (int) ($_POST['cart_id'] ?? 0);
-    $quantity = max(0, (int) ($_POST['quantity'] ?? 0));
+    $quantity = max(0.1, (float) ($_POST['quantity'] ?? 0));
     
     if ($cart_id <= 0) {
         http_response_code(400);
@@ -255,7 +265,7 @@ if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Update quantity
     $stmt = $conn->prepare('UPDATE carts SET quantity = ?, updated_at = NOW() WHERE id = ? AND customer_id = ?');
-    $stmt->bind_param('iii', $quantity, $cart_id, $cid);
+    $stmt->bind_param('dii', $quantity, $cart_id, $cid);
     $ok = $stmt->execute();
     $stmt->close();
     

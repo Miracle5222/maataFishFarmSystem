@@ -24,67 +24,34 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] === 'record_guests') {
+    // Sanitize inputs
+    $first_name = trim($_POST['first_name'] ?? '');
+    $last_name = trim($_POST['last_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
     $num_guests = intval($_POST['num_guests'] ?? 0);
     
-    if ($num_guests < 1) {
-        $message = 'Please enter at least 1 guest';
+    // Validation
+    if (empty($first_name) || empty($last_name) || empty($phone) || $num_guests < 1) {
+        $message = 'Please enter representative name, phone number, and number of guests';
         $message_type = 'error';
     } else {
-        // Collect guest names and phone numbers
-        $guests = [];
-        $valid = true;
+        // Sanitize for database
+        $first_name = htmlspecialchars($first_name);
+        $last_name = htmlspecialchars($last_name);
+        $phone = htmlspecialchars($phone);
         
-        for ($i = 1; $i <= $num_guests; $i++) {
-            $first_name = trim($_POST["guest_first_{$i}"] ?? '');
-            $last_name = trim($_POST["guest_last_{$i}"] ?? '');
-            $phone = trim($_POST["guest_phone_{$i}"] ?? '');
-            
-            if (empty($first_name) || empty($last_name) || empty($phone)) {
-                $message = "Please enter first name, last name, and phone number for all guests";
-                $message_type = 'error';
-                $valid = false;
-                break;
-            }
-            
-            $guests[] = [
-                'first_name' => htmlspecialchars($first_name),
-                'last_name' => htmlspecialchars($last_name),
-                'phone' => htmlspecialchars($phone)
-            ];
-        }
+        $total_amount = $num_guests * $ENTRANCE_FEE;
         
-        if ($valid) {
-            $total_amount = $num_guests * $ENTRANCE_FEE;
-            
-            // Insert guests into customers table
-            $insert_errors = false;
-            $inserted_customers = [];
-            
-            foreach ($guests as $guest) {
-                $stmt = $conn->prepare("INSERT INTO customers (first_name, last_name, phone, customer_type) VALUES (?, ?, ?, 'diner')");
-                if ($stmt) {
-                    $stmt->bind_param('sss', $guest['first_name'], $guest['last_name'], $guest['phone']);
-                    if ($stmt->execute()) {
-                        $inserted_customers[] = [
-                            'id' => $conn->insert_id,
-                            'first_name' => $guest['first_name'],
-                            'last_name' => $guest['last_name'],
-                            'phone' => $guest['phone']
-                        ];
-                    } else {
-                        $insert_errors = true;
-                    }
-                    $stmt->close();
-                } else {
-                    $insert_errors = true;
-                }
-            }
-            
-            if (!$insert_errors) {
+        // Insert representative into customers table
+        $stmt = $conn->prepare("INSERT INTO customers (first_name, last_name, phone, customer_type) VALUES (?, ?, ?, 'diner')");
+        if ($stmt) {
+            $stmt->bind_param('sss', $first_name, $last_name, $phone);
+            if ($stmt->execute()) {
+                $customer_id = $conn->insert_id;
+                
                 // Log activity
                 require 'handlers/activity_logger.php';
-                $guest_list = implode(', ', array_map(function($g) { return $g['first_name'] . ' ' . $g['last_name']; }, $guests));
-                $description = "Recorded entrance fee for {$num_guests} guest(s): {$guest_list}. Total: ₱" . number_format($total_amount, 2);
+                $description = "Recorded entrance fee for {$num_guests} guest(s) represented by {$first_name} {$last_name}. Total: ₱" . number_format($total_amount, 2);
                 
                 $logged = logActivity(
                     $conn,
@@ -92,33 +59,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
                     $_SESSION['role'],
                     'CREATE',
                     'entrance_fee',
-                    0,
+                    $customer_id,
                     'Entrance Fee Collection',
                     $description,
                     null,
-                    ['num_guests' => $num_guests, 'fee_per_guest' => $ENTRANCE_FEE, 'total' => $total_amount, 'guests' => $guests]
+                    ['num_guests' => $num_guests, 'fee_per_guest' => $ENTRANCE_FEE, 'total' => $total_amount, 'representative' => "$first_name $last_name", 'phone' => $phone]
                 );
                 
                 if ($logged) {
-                    $message = 'Entrance fee recorded and guests added to customer database!';
+                    $message = 'Entrance fee recorded successfully!';
                     $message_type = 'success';
                     
                     // Store submission data for display
                     $submission_data = [
+                        'first_name' => $first_name,
+                        'last_name' => $last_name,
+                        'phone' => $phone,
                         'num_guests' => $num_guests,
-                        'guests' => $guests,
                         'fee_per_guest' => $ENTRANCE_FEE,
                         'total_amount' => $total_amount,
                         'timestamp' => date('M d, Y g:ia')
                     ];
                 } else {
-                    $message = 'Guests added but activity logging failed';
+                    $message = 'Customer added but activity logging failed';
                     $message_type = 'error';
                 }
             } else {
-                $message = 'Failed to insert guests into customer database';
+                $message = 'Failed to insert customer record';
                 $message_type = 'error';
             }
+            $stmt->close();
+        } else {
+            $message = 'Database error occurred';
+            $message_type = 'error';
         }
     }
 }
@@ -210,50 +183,50 @@ include 'partials/head.php';
                 <p class="text-muted mb-0">Fixed Entrance Fee: <strong>₱<?php echo $ENTRANCE_FEE; ?>.00</strong> per guest</p>
             </div>
             <div class="card-body">
-                <form id="entranceFeeForm" method="POST">
+                <form method="POST">
                     <input type="hidden" name="action" value="record_guests">
                     
-                    <!-- Step 1: Enter Number of Guests -->
-                    <div class="form-group">
-                        <label for="numGuests"><strong>Number of Guests</strong></label>
-                        <div class="input-group input-group-lg">
-                            <input type="number" class="form-control" id="numGuests" name="num_guests" placeholder="Enter number of guests (optional)" min="1" max="500" value="">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="button" id="generateFieldsBtn">
-                                    <i class="feather icon-plus"></i> Generate Fields
-                                </button>
-                            </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label for="first_name"><strong>Representative First Name *</strong></label>
+                            <input type="text" class="form-control form-control-lg" id="first_name" name="first_name" placeholder="First name" required>
                         </div>
-                        <small class="form-text text-muted">Enter the number of guests and click "Generate Fields" to add name inputs</small>
+                        <div class="col-md-6 form-group">
+                            <label for="last_name"><strong>Representative Last Name *</strong></label>
+                            <input type="text" class="form-control form-control-lg" id="last_name" name="last_name" placeholder="Last name" required>
+                        </div>
                     </div>
 
-                    <!-- Guest Input Fields (Generated Dynamically) -->
-                    <div id="guestFieldsContainer" style="display:none; margin-top:30px;">
-                        <h6 class="font-weight-bold mb-3">Enter Guest Information</h6>
-                        <div id="guestFieldsList" class="form-row" style="gap:15px;">
-                            <!-- Guest fields will be generated here -->
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label for="phone"><strong>Phone Number *</strong></label>
+                            <input type="tel" class="form-control form-control-lg" id="phone" name="phone" placeholder="e.g., 09123456789" required>
                         </div>
+                        <div class="col-md-6 form-group">
+                            <label for="num_guests"><strong>Total Number of Guests *</strong></label>
+                            <input type="number" class="form-control form-control-lg" id="num_guests" name="num_guests" placeholder="Enter total guests" min="1" max="500" required>
+                        </div>
+                    </div>
 
-                        <!-- Total Calculation -->
-                        <div class="alert alert-info mt-4" style="background-color:#cfe2ff;color:#084298;border-color:#b6d4fe;">
-                            <div class="row text-center">
-                                <div class="col-md-6">
-                                    <p class="text-muted mb-1">Total Guests</p>
-                                    <h4 class="mb-0"><span id="totalGuestsDisplay">0</span> guests</h4>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="text-muted mb-1">Total Entrance Fee</p>
-                                    <h4 class="mb-0" style="color:#28a745;"><strong>₱<span id="totalFeeDisplay">0.00</span></strong></h4>
-                                </div>
+                    <!-- Total Calculation -->
+                    <div class="alert alert-info mt-4" style="background-color:#cfe2ff;color:#084298;border-color:#b6d4fe;">
+                        <div class="row text-center">
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Fee Per Guest</p>
+                                <h4 class="mb-0">₱<?php echo number_format($ENTRANCE_FEE, 2); ?></h4>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted mb-1">Total Entrance Fee</p>
+                                <h4 class="mb-0" style="color:#28a745;"><strong>₱<span id="totalFeeDisplay">0.00</span></strong></h4>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Submit Button -->
-                        <div class="text-right mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="feather icon-save"></i> Record Entrance Fee
-                            </button>
-                        </div>
+                    <!-- Submit Button -->
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="feather icon-save"></i> Record Entrance Fee
+                        </button>
                     </div>
                 </form>
             </div>
@@ -268,44 +241,20 @@ include 'partials/head.php';
             <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-4 text-center border-right">
-                        <p class="text-muted mb-1">Total Guests</p>
-                        <h3 class="text-primary"><?php echo $submission_data['num_guests']; ?></h3>
+                        <p class="text-muted mb-1">Representative</p>
+                        <h5><?php echo $submission_data['first_name'] . ' ' . $submission_data['last_name']; ?></h5>
+                        <small class="text-muted"><?php echo $submission_data['phone']; ?></small>
                     </div>
                     <div class="col-md-4 text-center border-right">
-                        <p class="text-muted mb-1">Fee Per Guest</p>
-                        <h3 class="text-info">₱<?php echo number_format($submission_data['fee_per_guest'], 2); ?></h3>
+                        <p class="text-muted mb-1">Total Guests</p>
+                        <h3 class="text-primary"><?php echo $submission_data['num_guests']; ?></h3>
                     </div>
                     <div class="col-md-4 text-center">
                         <p class="text-muted mb-1">Total Amount</p>
                         <h3 class="text-success"><strong>₱<?php echo number_format($submission_data['total_amount'], 2); ?></strong></h3>
                     </div>
                 </div>
-
-                <h6 class="font-weight-bold mb-3">Guest List</h6>
-                <table class="table table-sm table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>No.</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Phone Number</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($submission_data['guests'] as $idx => $guest): ?>
-                        <tr>
-                            <td><?php echo $idx + 1; ?></td>
-                            <td><?php echo $guest['first_name']; ?></td>
-                            <td><?php echo $guest['last_name']; ?></td>
-                            <td><?php echo $guest['phone']; ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-
-                <p class="text-muted text-center mt-3">
-                    <small>Recorded on: <?php echo $submission_data['timestamp']; ?></small>
-                </p>
+                <small class="text-muted">Recorded at: <?php echo $submission_data['timestamp']; ?></small>
             </div>
         </div>
         <?php endif; ?>
@@ -345,11 +294,7 @@ include 'partials/head.php';
                                     <td class="text-right"><strong style="color: #28a745;">₱<?php echo number_format($record['total'], 2); ?></strong></td>
                                     <td><small><?php echo htmlspecialchars($record['user_name']); ?></small></td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-icon btn-outline-info view-entrance-fee" 
-                                            data-id="<?php echo (int)$record['id']; ?>"
-                                            data-record-id="<?php echo (int)$record['id']; ?>"
-                                            title="View Guests"><i class="feather icon-eye"></i></button>
-                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this entrance fee record and all associated customer data?');">
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this entrance fee record?');">
                                             <input type="hidden" name="action" value="delete_record">
                                             <input type="hidden" name="record_id" value="<?php echo $record['id']; ?>">
                                             <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Delete">
@@ -382,205 +327,19 @@ include 'partials/head.php';
 </div>
 <!-- [ Layout content ] End -->
 
-<!-- View Guests Modal -->
-<div id="viewGuestsModal" class="modal" tabindex="-1" role="dialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1050;">
-    <div class="modal-dialog modal-lg" role="document" style="position:relative; margin:50px auto; max-width:600px; background:white; border-radius:4px;">
-        <div class="modal-content">
-            <div class="modal-header" style="padding:15px; border-bottom:1px solid #e0e0e0; display:flex; justify-content:space-between; align-items:center;">
-                <h5 class="modal-title mb-0">Guests Details</h5>
-                <button type="button" class="close" onclick="closeViewGuestsModal()" style="font-size:24px; border:none; background:none; cursor:pointer;">&times;</button>
-            </div>
-            <div class="modal-body" style="padding:20px; max-height:400px; overflow-y:auto;">
-                <table class="table table-sm table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:40px;">No.</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Phone</th>
-                        </tr>
-                    </thead>
-                    <tbody id="guestsTableBody">
-                        <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="modal-footer" style="padding:15px; border-top:1px solid #e0e0e0;">
-                <button type="button" class="btn btn-secondary" onclick="closeViewGuestsModal()">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 const ENTRANCE_FEE = <?php echo $ENTRANCE_FEE; ?>;
 
-// Generate guest input fields based on number entered
-document.getElementById('generateFieldsBtn').addEventListener('click', function() {
-    const inputEl = document.getElementById('numGuests');
-    let numGuests = parseInt(inputEl.value);
-
-    // If input is empty or invalid, default to 1 (number optional)
-    if (isNaN(numGuests) || numGuests < 1) {
-        numGuests = 1;
-    }
-
-    if (numGuests > 500) {
-        alert('Maximum 500 guests allowed');
-        numGuests = 500;
-    }
-
-    // Ensure the visible input reflects the generated count
-    inputEl.value = numGuests;
-    
-    const container = document.getElementById('guestFieldsList');
-    container.innerHTML = ''; // Clear previous fields
-    
-    // Create input fields for each guest
-    for (let i = 1; i <= numGuests; i++) {
-        const guestDiv = document.createElement('div');
-        guestDiv.className = 'col-md-6 col-lg-4';
-        guestDiv.innerHTML = `
-            <div class="card mb-3">
-                <div class="card-header" style="background-color:#f8f9fa; padding:10px;">
-                    <small style="font-weight:600;">Guest ${i}</small>
-                </div>
-                <div class="card-body" style="padding:15px;">
-                    <div class="form-group mb-2">
-                        <label style="font-size:13px; margin-bottom:5px;">First Name</label>
-                        <input type="text" class="form-control form-control-sm" name="guest_first_${i}" placeholder="First name" required>
-                    </div>
-                    <div class="form-group mb-2">
-                        <label style="font-size:13px; margin-bottom:5px;">Last Name</label>
-                        <input type="text" class="form-control form-control-sm" name="guest_last_${i}" placeholder="Last name" required>
-                    </div>
-                    <div class="form-group mb-0">
-                        <label style="font-size:13px; margin-bottom:5px;">Phone Number</label>
-                        <input type="tel" class="form-control form-control-sm" name="guest_phone_${i}" placeholder="Phone number" required>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(guestDiv);
-    }
-    
-    // Update totals
-    updateTotals();
-    
-    // Show the fields container
-    document.getElementById('guestFieldsContainer').style.display = 'block';
-    
-    // Scroll to guest fields
-    setTimeout(() => {
-        document.getElementById('guestFieldsContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-});
-
-// Update total calculations
-function updateTotals() {
-    const numGuests = parseInt(document.getElementById('numGuests').value) || 0;
+// Update total fee calculation when number of guests changes
+document.getElementById('num_guests').addEventListener('input', function() {
+    const numGuests = parseInt(this.value) || 0;
     const totalFee = numGuests * ENTRANCE_FEE;
-    
-    document.getElementById('totalGuestsDisplay').textContent = numGuests;
     document.getElementById('totalFeeDisplay').textContent = totalFee.toFixed(2);
-}
-
-// Update totals when number changes
-document.getElementById('numGuests').addEventListener('change', updateTotals);
-document.getElementById('numGuests').addEventListener('input', updateTotals);
-
-// Prevent form submission if fields not generated
-document.getElementById('entranceFeeForm').addEventListener('submit', function(e) {
-    const numGuests = parseInt(document.getElementById('numGuests').value) || 0;
-    const container = document.getElementById('guestFieldsList');
-    
-    if (numGuests > 0 && container.children.length === 0) {
-        e.preventDefault();
-        alert('Please click "Generate Fields" first to create input fields for all guests');
-    }
 });
 
-// Handle view guests button clicks
-document.querySelectorAll('.view-entrance-fee').forEach(button => {
-    button.addEventListener('click', function() {
-        const recordId = this.getAttribute('data-record-id');
-        fetchAndDisplayGuests(recordId);
-    });
-});
-
-// Fetch and display guests for a record
-function fetchAndDisplayGuests(recordId) {
-    fetch('handlers/get_entrance_fee_guests.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: 'record_id=' + encodeURIComponent(recordId)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('HTTP error, status = ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success && data.guests && Array.isArray(data.guests)) {
-            let html = '';
-            if (data.guests.length > 0) {
-                data.guests.forEach((guest, idx) => {
-                    html += '<tr>';
-                    html += '<td>' + (idx + 1) + '</td>';
-                    html += '<td>' + escapeHtml(guest.first_name || '') + '</td>';
-                    html += '<td>' + escapeHtml(guest.last_name || '') + '</td>';
-                    html += '<td>' + escapeHtml(guest.phone || '') + '</td>';
-                    html += '</tr>';
-                });
-            } else {
-                html = '<tr><td colspan="4" class="text-center text-muted">No guests in this record</td></tr>';
-            }
-            document.getElementById('guestsTableBody').innerHTML = html;
-            openViewGuestsModal();
-        } else {
-            const errorMsg = data.message || 'Failed to load guest details';
-            alert(errorMsg);
-            console.error('Data error:', data);
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        alert('Error loading guest details: ' + error.message);
-    });
-}
-
-// Modal functions
-function openViewGuestsModal() {
-    document.getElementById('viewGuestsModal').style.display = 'block';
-}
-
-function closeViewGuestsModal() {
-    document.getElementById('viewGuestsModal').style.display = 'none';
-}
-
-// Helper function to escape HTML
-function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('viewGuestsModal');
-    if (event.target === modal) {
-        closeViewGuestsModal();
-    }
-});
+// Initialize total fee display
+document.getElementById('num_guests').dispatchEvent(new Event('input'));
 </script>
 
 
