@@ -16,7 +16,7 @@ if (!$order_id) {
 }
 
 // Fetch order details
-$stmt = $conn->prepare('SELECT id, order_number, order_date, pickup_date, total_amount, status FROM orders WHERE id = ? AND customer_id = ? LIMIT 1');
+$stmt = $conn->prepare('SELECT id, order_number, order_date, pickup_date, total_amount, status, cancellation_reason FROM orders WHERE id = ? AND customer_id = ? LIMIT 1');
 $stmt->bind_param('ii', $order_id, $cid);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -64,25 +64,14 @@ function formatDateTime($datetime) {
                 </div>
             </div>
 
-        </div>
-
-        <!-- Order Items -->
-        <div style="background:white; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:24px;">
-            <h2 style="color:#233; margin:0 0 20px 0; font-size:20px;">Items Ordered</h2>
+                <?php if (strtolower($order['status']) === 'cancelled' && !empty($order['cancellation_reason'])): ?>
+                    <div style="margin-bottom:20px; padding:18px; border-radius:8px; background:#ffefef; border:1px solid #f5c6cb;">
+                        <p style="margin:0 0 10px 0; font-weight:700; color:#c0392b;">Cancellation Reason</p>
+                        <p style="margin:0; color:#333; white-space:pre-wrap;"><?php echo nl2br(htmlspecialchars($order['cancellation_reason'])); ?></p>
+                    </div>
+                <?php endif; ?>
 
             <?php
-            // Check what's in the orders table
-            $orders_stmt = $conn->prepare('SELECT * FROM orders WHERE id = ? AND customer_id = ?');
-            $orders_stmt->bind_param('ii', $order_id, $cid);
-            $orders_stmt->execute();
-            $orders_res = $orders_stmt->get_result();
-            $orders_data = $orders_res->fetch_assoc();
-            $orders_stmt->close();
-            
-            echo '<!-- DEBUG: Orders table data for order_id=' . $order_id . ': ' . json_encode($orders_data) . ' -->';
-            error_log('[order_detail] Orders table: ' . json_encode($orders_data));
-            
-            // Check order_items
             $check_stmt = $conn->prepare('SELECT * FROM order_items WHERE order_id = ?');
             $check_stmt->bind_param('i', $order_id);
             $check_stmt->execute();
@@ -92,8 +81,6 @@ function formatDateTime($datetime) {
                 $order_items_rows[] = $row;
             }
             $check_stmt->close();
-            
-            echo '<!-- DEBUG: order_items rows=' . count($order_items_rows) . ': ' . json_encode($order_items_rows) . ' -->';
             error_log('[order_detail] order_items: ' . json_encode($order_items_rows));
             
             if (count($order_items_rows) > 0) {
@@ -174,7 +161,9 @@ function formatDateTime($datetime) {
         <div id="cancelModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:white; padding:32px; border-radius:8px; max-width:400px; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
                 <h2 style="color:#c0392b; margin:0 0 16px 0;">Cancel Order?</h2>
-                <p style="color:#666; margin:0 0 24px 0; line-height:1.6;">Are you sure you want to cancel this order? This action cannot be undone.</p>
+                <p style="color:#666; margin:0 0 12px 0; line-height:1.6;">Please let us know why you are cancelling this order. This action cannot be undone.</p>
+                <textarea id="cancelReasonInput" rows="4" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical; margin-bottom:10px;" placeholder="Enter cancellation reason..."></textarea>
+                <p id="cancelReasonError" style="display:none; color:#c0392b; margin:0 0 12px 0;"></p>
                 <div style="display:flex; gap:12px; justify-content:flex-end;">
                     <button id="cancelOrderConfirm" class="btn btn-danger" style="padding:10px 20px; background:#c0392b; border:none; border-radius:6px; color:white; font-weight:600; cursor:pointer;">Yes, Cancel Order</button>
                     <button id="cancelOrderCancel" class="btn btn-secondary" style="padding:10px 20px; background:#95a5a6; border:none; border-radius:6px; color:white; font-weight:600; cursor:pointer;">No, Keep Order</button>
@@ -199,9 +188,20 @@ function formatDateTime($datetime) {
     });
 
     document.getElementById('cancelOrderConfirm')?.addEventListener('click', function() {
+        var reasonField = document.getElementById('cancelReasonInput');
+        var reasonError = document.getElementById('cancelReasonError');
+        var reason = reasonField.value.trim();
+        if (!reason) {
+            reasonError.textContent = 'Cancellation reason is required.';
+            reasonError.style.display = 'block';
+            return;
+        }
+        reasonError.style.display = 'none';
+
         var formData = new FormData();
         formData.append('action', 'cancel_order');
         formData.append('order_id', orderId);
+        formData.append('cancel_reason', reason);
 
         fetch('../handlers/order_cancel.php', {
             method: 'POST',
@@ -216,14 +216,14 @@ function formatDateTime($datetime) {
                     window.location.href = 'orders.php';
                 }, 500);
             } else {
-                alert('Error cancelling order: ' + (data.error || 'Unknown error'));
-                document.getElementById('cancelModal').style.display = 'none';
+                reasonError.textContent = data.error || 'Unknown error';
+                reasonError.style.display = 'block';
             }
         })
         .catch(function(e) {
             console.error('Cancel error:', e);
-            alert('Error cancelling order');
-            document.getElementById('cancelModal').style.display = 'none';
+            reasonError.textContent = 'Error cancelling order';
+            reasonError.style.display = 'block';
         });
     });
 </script>

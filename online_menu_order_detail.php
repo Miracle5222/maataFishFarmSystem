@@ -50,6 +50,13 @@
                         </select>
                         <button type="button" id="updateStatusBtn" class="btn btn-sm btn-primary">Update</button>
                     </dd>
+                    <dd style="width:100%; padding-top:10px;">
+                        <div id="cancelReasonCard" style="display:none; background:#fff5f5; border:1px solid #f5c6cb; border-radius:8px; padding:16px; margin-top:10px;">
+                            <label for="cancelReasonText" style="font-weight:600; display:block; margin-bottom:8px;">Cancellation Reason</label>
+                            <textarea id="cancelReasonText" rows="4" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical;" placeholder="Enter cancellation reason..."></textarea>
+                            <p id="cancelReasonError" style="display:none; color:#c0392b; margin-top:8px;"></p>
+                        </div>
+                    </dd>
                     <dt>Order Date</dt>
                     <dd><?php echo htmlspecialchars(date('M d, Y g:iA', strtotime($order['order_date']))); ?></dd>
                     <dt>Pickup Date</dt>
@@ -104,17 +111,42 @@
 <?php include 'partials/footer.php'; ?>
 
 <script>
+var statusSelect = document.getElementById('statusSelect');
+var cancelReasonCard = document.getElementById('cancelReasonCard');
+var cancelReasonText = document.getElementById('cancelReasonText');
+var cancelReasonError = document.getElementById('cancelReasonError');
+
+statusSelect.addEventListener('change', function() {
+    if (this.value === 'cancelled') {
+        cancelReasonCard.style.display = 'block';
+    } else {
+        cancelReasonCard.style.display = 'none';
+        cancelReasonText.value = '';
+        cancelReasonError.style.display = 'none';
+    }
+});
+
 document.getElementById('updateStatusBtn').addEventListener('click', function() {
-    var newStatus = document.getElementById('statusSelect').value;
+    var newStatus = statusSelect.value;
     if (!newStatus) {
         alert('Please select a status');
         return;
     }
-    
+
+    var cancelReason = '';
+    if (newStatus === 'cancelled') {
+        cancelReason = cancelReasonText.value.trim();
+        if (!cancelReason) {
+            cancelReasonError.textContent = 'Cancellation reason is required.';
+            cancelReasonError.style.display = 'block';
+            return;
+        }
+    }
+
     fetch('handlers/online_menu_order_update.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'order_id=<?php echo (int)$id; ?>&status=' + encodeURIComponent(newStatus),
+        body: 'order_id=<?php echo (int)$id; ?>&status=' + encodeURIComponent(newStatus) + (cancelReason ? '&cancel_reason=' + encodeURIComponent(cancelReason) : ''),
         credentials: 'include'
     })
     .then(function(res) {
@@ -125,19 +157,21 @@ document.getElementById('updateStatusBtn').addEventListener('click', function() 
         try {
             var data = JSON.parse(text);
             if (data.ok === true) {
-                alert('Status updated to: ' + newStatus);
                 location.reload();
             } else {
-                alert('Error: ' + (data.msg || 'Update failed'));
+                cancelReasonError.textContent = data.msg || 'Update failed';
+                cancelReasonError.style.display = 'block';
             }
         } catch (e) {
             console.error('JSON parse error:', e);
-            alert('Error: ' + e.message);
+            cancelReasonError.textContent = 'Error: ' + e.message;
+            cancelReasonError.style.display = 'block';
         }
     })
     .catch(function(e) {
         console.error('Fetch error:', e);
-        alert('Network error: ' + e.message);
+        cancelReasonError.textContent = 'Network error: ' + e.message;
+        cancelReasonError.style.display = 'block';
     });
 });
 </script>

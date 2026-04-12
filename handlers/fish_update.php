@@ -30,6 +30,17 @@ if ($desc === '0') $desc = '';
 if ($desc === null || $desc === '') $desc = '';
 error_log('[fish_update] Received description: ' . var_export($desc, true));
 $status = trim($_POST['status'] ?? 'available');
+$stock_action = trim($_POST['stock_action'] ?? '');
+$stock_reason = trim($_POST['stock_reason'] ?? '');
+if ($stock_action === 'out' && $stock_reason === '') {
+    ob_clean();
+    echo json_encode(['ok' => 0, 'msg' => 'Stock-out reason is required']);
+    exit;
+}
+$colRes = $conn->query("SHOW COLUMNS FROM fish_species LIKE 'last_stock_out_reason'");
+if ($colRes && $colRes->num_rows === 0) {
+    $conn->query("ALTER TABLE fish_species ADD COLUMN last_stock_out_reason TEXT NULL");
+}
 if ($id <= 0 || $name === '' || $price <= 0) {
     ob_clean();
     echo json_encode(['ok' => 0, 'msg' => 'Missing fields']);
@@ -68,32 +79,61 @@ if (!empty($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE
 
 // if image updated, fetch old filename to delete after successful update
 $oldImage = null;
+$oldStock = null;
 if ($imageUpdated) {
-    $q = $conn->prepare('SELECT image FROM fish_species WHERE fish_id = ?');
+    $q = $conn->prepare('SELECT image, stock FROM fish_species WHERE fish_id = ?');
     if ($q) {
         $q->bind_param('i', $id);
         $q->execute();
         $res = $q->get_result();
-        if ($r = $res->fetch_assoc()) $oldImage = $r['image'];
+        if ($r = $res->fetch_assoc()) {
+            $oldImage = $r['image'];
+            $oldStock = isset($r['stock']) ? (int)$r['stock'] : null;
+        }
+        $q->close();
+    }
+} else {
+    $q = $conn->prepare('SELECT stock FROM fish_species WHERE fish_id = ?');
+    if ($q) {
+        $q->bind_param('i', $id);
+        $q->execute();
+        $res = $q->get_result();
+        if ($r = $res->fetch_assoc()) {
+            $oldStock = isset($r['stock']) ? (int)$r['stock'] : null;
+        }
         $q->close();
     }
 }
 
 $fields = 'name = ?, local_name = ?, price_per_kg = ?, stock = ?, harvest_schedule = ?, description = ?, status = ?';
-if ($imageUpdated) $fields .= ', image = ?';
-
 $sql = 'UPDATE fish_species SET ' . $fields . ' WHERE fish_id = ?';
+$bindTypes = 'ssdisssi';
+$bindValues = [$name, $local, $price, $stock, $harvest, $desc, $status, $id];
+
+if ($imageUpdated && $stock_action === 'out') {
+    $fields .= ', image = ?, last_stock_out_reason = ?';
+    $sql = 'UPDATE fish_species SET ' . $fields . ' WHERE fish_id = ?';
+    $bindTypes = 'ssdisssssi';
+    $bindValues = [$name, $local, $price, $stock, $harvest, $desc, $status, $newImageName, $stock_reason, $id];
+} elseif ($imageUpdated) {
+    $fields .= ', image = ?';
+    $sql = 'UPDATE fish_species SET ' . $fields . ' WHERE fish_id = ?';
+    $bindTypes = 'ssdissssi';
+    $bindValues = [$name, $local, $price, $stock, $harvest, $desc, $status, $newImageName, $id];
+} elseif ($stock_action === 'out') {
+    $fields .= ', last_stock_out_reason = ?';
+    $sql = 'UPDATE fish_species SET ' . $fields . ' WHERE fish_id = ?';
+    $bindTypes = 'ssdissssi';
+    $bindValues = [$name, $local, $price, $stock, $harvest, $desc, $status, $stock_reason, $id];
+}
+
 $up = $conn->prepare($sql);
 if (!$up) {
     ob_clean();
     echo json_encode(['ok' => 0, 'msg' => 'Prepare failed']);
     exit;
 }
-if ($imageUpdated) {
-    $up->bind_param('ssdissssi', $name, $local, $price, $stock, $harvest, $desc, $status, $newImageName, $id);
-} else {
-    $up->bind_param('ssdisssi', $name, $local, $price, $stock, $harvest, $desc, $status, $id);
-}
+$up->bind_param($bindTypes, ...$bindValues);
 $ok = $up->execute();
 if (!$ok) {
     error_log('[fish_update] SQL ERROR: ' . $up->error);
@@ -105,6 +145,28 @@ if ($ok) {
     if ($imageUpdated && $oldImage) {
         $oldPath = __DIR__ . '/../assets/img/fish_species/' . $oldImage;
         if (is_file($oldPath)) @unlink($oldPath);
+    }
+    
+    if ($stock_action === 'out') {
+        $conn->query("CREATE TABLE IF NOT EXISTS fish_stock_out_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            fish_id INT NOT NULL,
+            fish_name VARCHAR(255) NOT NULL,
+            quantity INT NOT NULL,
+            reason TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $outQty = 0;
+        if ($oldStock !== null) {
+            $outQty = max(0, $oldStock - $stock);
+        }
+        $logStmt = $conn->prepare('INSERT INTO fish_stock_out_logs (fish_id, fish_name, quantity, reason) VALUES (?, ?, ?, ?)');
+        if ($logStmt) {
+            $logStmt->bind_param('isis', $id, $name, $outQty, $stock_reason);
+            $logStmt->execute();
+            $logStmt->close();
+        }
     }
     
     // Log the activity using correct session variables BEFORE sending response
@@ -129,22 +191,40 @@ if ($ok) {
     if (!empty($status)) $changes[] = "Status: " . ucfirst($status);
     $specificDesc = "Updated fish species " . implode(" | ", $changes);
     
+    $activityType = 'EDIT';
+    $oldValues = null;
+    $newValues = [
+        'name' => $name,
+        'price_per_kg' => $price,
+        'stock' => $stock,
+        'status' => $status
+    ];
+    if ($stock_action !== '') {
+        $activityType = 'RESTOCK';
+        $qty = null;
+        if ($oldStock !== null) {
+            $qty = abs($stock - $oldStock);
+            $oldValues = ['stock' => $oldStock];
+        }
+        $direction = $stock_action === 'out' ? '-' : '+';
+        $actionText = $stock_action === 'out' ? 'Stock-Out' : 'Stock-In';
+        $specificDesc = $actionText . ' fish species ' . ($qty !== null ? "$direction{$qty} units. " : '') . 'New stock: ' . $stock . '.';
+        if ($stock_action === 'out' && $stock_reason !== '') {
+            $specificDesc .= ' Reason: ' . $stock_reason;
+            $newValues['stock_reason'] = $stock_reason;
+        }
+    }
     $result = logActivity(
         $conn,
         $user_id,
         $user_type,
-        'EDIT',
+        $activityType,
         'fish_species',
         $id,
         $name,
         $specificDesc,
-        null,
-        [
-            'name' => $name,
-            'price_per_kg' => $price,
-            'stock' => $stock,
-            'status' => $status
-        ]
+        $oldValues,
+        $newValues
     );
     
     error_log('[fish_update] Activity log result: ' . ($result ? 'success' : 'failed'));

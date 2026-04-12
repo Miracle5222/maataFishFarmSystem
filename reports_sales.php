@@ -369,7 +369,7 @@ $selected_category = isset($_GET['category']) ? $_GET['category'] : 'all';
         $boat = getServiceMetrics($conn, 'Boat Rentals', 'boat', $today_date, $today_end);
         
         // ===== ENTRANCE FEE METRICS =====
-        $ENTRANCE_FEE = 50; // fixed fee per guest
+        $ENTRANCE_FEE = 50; // fixed fee per guest fallback
         $entrance = ['today' => 0, 'month' => 0, 'year' => 0, 'all_time' => 0, 'today_count' => 0, 'month_count' => 0, 'year_count' => 0, 'all_count' => 0];
         
         // Calculate entrance fee metrics
@@ -380,7 +380,8 @@ $selected_category = isset($_GET['category']) ? $_GET['category'] : 'all';
             while ($row = $entr_res->fetch_assoc()) {
                 $data = json_decode($row['new_values'], true);
                 $num = (int)($data['num_guests'] ?? 0);
-                $revenue = $num * $ENTRANCE_FEE;
+                $fee_per_guest = isset($data['fee_per_guest']) ? (float)$data['fee_per_guest'] : $ENTRANCE_FEE;
+                $revenue = $num * $fee_per_guest;
                 $date = date('Y-m-d', strtotime($row['timestamp']));
                 
                 $entrance['all_time'] += $revenue;
@@ -401,12 +402,200 @@ $selected_category = isset($_GET['category']) ? $_GET['category'] : 'all';
             }
             $entr_stmt->close();
         }
+
+        // Determine current report detail range for category breakdowns
+        if ($use_custom_dates) {
+            $detail_start = $custom_start_date;
+            $detail_end = $custom_end_date;
+            $detail_period_label = 'Custom Range (' . date('M d, Y', strtotime($custom_start_date)) . ' to ' . date('M d, Y', strtotime($custom_end_date)) . ')';
+        } else {
+            switch ($period) {
+                case 'today':
+                    $detail_start = date('Y-m-d');
+                    $detail_end = date('Y-m-d');
+                    break;
+                case '7days':
+                    $detail_start = date('Y-m-d', strtotime('-7 days'));
+                    $detail_end = date('Y-m-d');
+                    break;
+                case '30days':
+                    $detail_start = date('Y-m-d', strtotime('-30 days'));
+                    $detail_end = date('Y-m-d');
+                    break;
+                case '90days':
+                    $detail_start = date('Y-m-d', strtotime('-90 days'));
+                    $detail_end = date('Y-m-d');
+                    break;
+                case 'month':
+                    $detail_start = $month_start;
+                    $detail_end = $month_end;
+                    break;
+                case 'year':
+                    $detail_start = $year_start;
+                    $detail_end = $year_end;
+                    break;
+                default:
+                    $detail_start = '1900-01-01';
+                    $detail_end = '2099-12-31';
+            }
+            $detail_period_label = $periodLabel;
+        }
+
+        function formatReportDate($date) {
+            return date('M d, Y', strtotime($date));
+        }
+
+        function fetchSalesDetailRows($conn, $category, $start_date, $end_date, &$detail_title) {
+            $rows = [];
+            $detail_title = '';
+            $query = '';
+            $stmt = null;
+
+            switch ($category) {
+                case 'online_fish':
+                    $detail_title = 'Online Fish Order Details';
+                    $query = "SELECT o.order_number AS reference_number, o.created_at AS date, fs.name AS description, oi.quantity, oi.unit_price, oi.subtotal
+                              FROM orders o
+                              JOIN order_items oi ON oi.order_id = o.id
+                              JOIN fish_species fs ON oi.product_id = fs.fish_id
+                              WHERE o.is_manual = 0 AND o.status IN ('paid', 'completed')
+                                AND DATE(o.created_at) BETWEEN ? AND ?
+                              ORDER BY o.created_at DESC, o.order_number";
+                    break;
+                case 'walkin_fish':
+                    $detail_title = 'Walk-in Fish Order Details';
+                    $query = "SELECT fo.order_number AS reference_number, fo.created_at AS date, COALESCE(fs.name, 'Fish Item') AS description, foi.quantity, foi.unit_price, foi.subtotal
+                              FROM fish_orders fo
+                              JOIN fish_order_items foi ON foi.fish_order_id = fo.id
+                              LEFT JOIN fish_species fs ON foi.fish_id = fs.fish_id
+                              WHERE fo.status = 'paid'
+                                AND DATE(fo.created_at) BETWEEN ? AND ?
+                              ORDER BY fo.created_at DESC, fo.order_number";
+                    break;
+                case 'online_menu':
+                    $detail_title = 'Online Menu Order Details';
+                    $query = "SELECT o.order_number AS reference_number, o.created_at AS date,
+                                      p.name AS description,
+                                      oi.quantity, oi.unit_price, oi.subtotal
+                              FROM orders o
+                              JOIN order_items oi ON oi.order_id = o.id
+                              JOIN products p ON oi.product_id = p.id
+                              WHERE o.is_manual = 0 AND o.status IN ('paid', 'completed')
+                                AND DATE(o.created_at) BETWEEN ? AND ?
+                              ORDER BY o.created_at DESC, o.order_number";
+                    break;
+                case 'walkin_menu':
+                    $detail_title = 'Walk-in / Direct Menu Order Details';
+                    $query = "SELECT mo.order_number AS reference_number, mo.created_at AS date,
+                                      IF(moi.item_type = 'fish', fs.name, p.name) AS description,
+                                      moi.quantity, moi.unit_price, moi.subtotal
+                              FROM menu_order_items moi
+                              JOIN menu_orders mo ON moi.menu_order_id = mo.id
+                              LEFT JOIN fish_species fs ON moi.item_type = 'fish' AND moi.item_id = fs.fish_id
+                              LEFT JOIN products p ON moi.item_type = 'product' AND moi.item_id = p.id
+                              WHERE mo.status IN ('paid', 'confirmed')
+                                AND DATE(mo.created_at) BETWEEN ? AND ?
+                              ORDER BY mo.created_at DESC, mo.order_number";
+                    break;
+                case 'online_cottage':
+                    $detail_title = 'Online Cottage Reservation Details';
+                    $query = "SELECT r.reservation_number AS reference_number, r.created_at AS date,
+                                      CONCAT('Cottage ', COALESCE(cot.cottage_number, 'N/A')) AS description,
+                                      r.num_guests AS quantity, r.total_amount AS unit_price, r.total_amount AS subtotal
+                              FROM reservations r
+                              LEFT JOIN cottages cot ON r.cottage_id = cot.id
+                              WHERE r.reservation_type = 'cottage' AND r.is_manual = 0 AND r.status = 'completed'
+                                AND DATE(r.created_at) BETWEEN ? AND ?
+                              ORDER BY r.created_at DESC, r.reservation_number";
+                    break;
+                case 'walkin_cottage':
+                    $detail_title = 'Walk-in Cottage Reservation Details';
+                    $query = "SELECT r.reservation_number AS reference_number, r.created_at AS date,
+                                      CONCAT('Cottage ', COALESCE(cot.cottage_number, 'N/A')) AS description,
+                                      r.num_guests AS quantity, r.total_amount AS unit_price, r.total_amount AS subtotal
+                              FROM reservations r
+                              LEFT JOIN cottages cot ON r.cottage_id = cot.id
+                              WHERE r.reservation_type = 'cottage' AND r.is_manual = 1 AND r.status = 'completed'
+                                AND DATE(r.created_at) BETWEEN ? AND ?
+                              ORDER BY r.created_at DESC, r.reservation_number";
+                    break;
+                case 'boat':
+                    $detail_title = 'Boat Rental Details';
+                    $query = "SELECT CONCAT('BR-', br.id) AS reference_number,
+                                      br.created_at AS date,
+                                      CONCAT('Boat: ', br.boat_name, ' | ', IFNULL(br.hours_rented, 0), ' hrs') AS description,
+                                      br.hours_rented AS quantity, br.hourly_rate AS unit_price, br.total_amount AS subtotal
+                              FROM boat_rentals br
+                              WHERE br.status = 'completed'
+                                AND DATE(br.created_at) BETWEEN ? AND ?
+                              ORDER BY br.created_at DESC, br.id";
+                    break;
+                case 'entrance':
+                    $detail_title = 'Entrance Fee Details';
+                    $query = "SELECT id, new_values, timestamp FROM activity_logs
+                              WHERE entity_type = 'entrance_fee' AND activity_type = 'CREATE'
+                                AND DATE(timestamp) BETWEEN ? AND ?
+                              ORDER BY timestamp DESC";
+                    break;
+            }
+
+            if (!$query) {
+                return $rows;
+            }
+
+            if ($category === 'entrance') {
+                $stmt = $conn->prepare($query);
+                if ($stmt) {
+                    $stmt->bind_param('ss', $start_date, $end_date);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+                    while ($row = $res->fetch_assoc()) {
+                        $data = json_decode($row['new_values'], true);
+                        $num_guests = (int)($data['num_guests'] ?? 0);
+                        $fee_per_guest = isset($data['fee_per_guest']) ? (float)$data['fee_per_guest'] : $GLOBALS['ENTRANCE_FEE'];
+                        $total_amount = isset($data['total']) ? (float)$data['total'] : $num_guests * $fee_per_guest;
+
+                        $rows[] = [
+                            'date' => $row['timestamp'],
+                            'reference_number' => 'Entrance Fee',
+                            'description' => $num_guests . ' guest(s) @ ₱' . number_format($fee_per_guest, 2),
+                            'quantity' => $num_guests,
+                            'unit_price' => $fee_per_guest,
+                            'subtotal' => $total_amount,
+                        ];
+                    }
+                    $stmt->close();
+                }
+                return $rows;
+            }
+
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $stmt->bind_param('ss', $start_date, $end_date);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                while ($row = $res->fetch_assoc()) {
+                    $rows[] = [
+                        'date' => $row['date'],
+                        'reference_number' => $row['reference_number'] ?? ($row['reservation_number'] ?? ''),
+                        'description' => $row['description'] ?? $row['item_name'] ?? 'Item',
+                        'quantity' => $row['quantity'] ?? 1,
+                        'unit_price' => $row['unit_price'] ?? 0,
+                        'subtotal' => $row['subtotal'] ?? 0,
+                    ];
+                }
+                $stmt->close();
+            }
+
+            return $rows;
+        }
         ?>
         
         <style>
             @media print {
                 body { margin: 0; padding: 0.5in; font-size: 11px; }
                 .no-print { display: none !important; }
+                #layout-sidenav, #layout-navbar { display: none !important; }
                 .container-fluid { margin: 0; padding: 0; }
                 .print-header { display: block !important; }
                 .page-break { page-break-after: always; }
@@ -873,6 +1062,54 @@ $selected_category = isset($_GET['category']) ? $_GET['category'] : 'all';
             </div>
         </div>
         <?php endif; ?>
+
+        <?php if ($selected_category != 'all'): ?>
+            <?php
+                $detail_rows = fetchSalesDetailRows($conn, $selected_category, $detail_start, $detail_end, $detail_title);
+                $detail_total = 0;
+                foreach ($detail_rows as $detail_row) {
+                    $detail_total += (float)$detail_row['subtotal'];
+                }
+            ?>
+            <div class="service-card">
+                <h4><?php echo htmlspecialchars($detail_title); ?></h4>
+                <p style="color: #666; font-size: 12px; margin: 5px 0;">Details for <?php echo htmlspecialchars($detail_period_label); ?>.</p>
+                <?php if (!empty($detail_rows)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Reference</th>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($detail_rows as $row): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars(formatReportDate($row['date'])); ?></td>
+                                        <td><?php echo htmlspecialchars($row['reference_number']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['description']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['quantity']); ?></td>
+                                        <td>₱<?php echo number_format($row['unit_price'], 2); ?></td>
+                                        <td>₱<?php echo number_format($row['subtotal'], 2); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 1rem; font-weight: bold;">
+                        Period Total: ₱<?php echo number_format($detail_total, 2); ?>
+                    </div>
+                <?php else: ?>
+                    <p class="text-muted">No detailed sales records found for this category in the chosen period.</p>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <div class="print-footer">
             <div style="margin-bottom: 1.5rem;">
                 <strong>Report Summary:</strong><br>

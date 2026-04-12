@@ -249,8 +249,9 @@ if ($entr_stmt) {
     while ($erow = $entr_res->fetch_assoc()) {
         $nv = json_decode($erow['new_values'], true);
         $num = intval($nv['num_guests'] ?? 0);
+        $fee_per_guest = isset($nv['fee_per_guest']) ? (float)$nv['fee_per_guest'] : $ENTRANCE_FEE;
         if ($num > 0) {
-            $revenue = $num * $ENTRANCE_FEE;
+            $revenue = $num * $fee_per_guest;
             $entrance_total_revenue += $revenue;
             if (date('Y-m-d', strtotime($erow['timestamp'])) === $today_date) {
                 $entrance_today_guests += $num;

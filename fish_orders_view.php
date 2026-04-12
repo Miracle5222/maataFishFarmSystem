@@ -1,4 +1,5 @@
 <?php include 'auth_admin.php'; ?>
+<?php $isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'); ?>
 <?php include 'partials/head.php'; ?>
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
@@ -106,9 +107,11 @@
                                     data-status="<?php echo htmlspecialchars($r['status']); ?>"
                                     data-created="<?php echo htmlspecialchars(date('F j, Y \a\t g:i A', strtotime($r['created_at']))); ?>"
                                     title="View"><i class="feather icon-eye"></i></button>
+                                <?php if ($isAdmin): ?>
                                 <button class="btn btn-sm btn-icon btn-outline-danger delete-fish-order"
                                     data-id="<?php echo (int)$r['id']; ?>"
                                     title="Delete"><i class="feather icon-trash-2"></i></button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; } ?>

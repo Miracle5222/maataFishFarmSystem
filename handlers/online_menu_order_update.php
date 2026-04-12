@@ -25,6 +25,7 @@ if (empty($_SESSION['user_id'])) {
 
 $order_id = (int)($_POST['order_id'] ?? 0);
 $status = trim($_POST['status'] ?? '');
+$cancel_reason = trim($_POST['cancel_reason'] ?? '');
 
 if (!$order_id || !$status) {
     ob_clean();
@@ -42,8 +43,22 @@ if (!in_array($status, $valid_statuses)) {
     exit;
 }
 
+// If cancelling, require reason
+if ($status === 'cancelled' && $cancel_reason === '') {
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'msg' => 'Cancellation reason is required']);
+    exit;
+}
+
+// Ensure cancellation_reason column exists
+$colCheck = $conn->query("SHOW COLUMNS FROM `orders` LIKE 'cancellation_reason'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE `orders` ADD COLUMN cancellation_reason TEXT NULL");
+}
+
 // Update order status (only for online menu orders: is_manual = 0)
-$stmt = $conn->prepare('UPDATE orders SET status = ? WHERE id = ? AND is_manual = 0');
+$stmt = $conn->prepare('UPDATE orders SET status = ?, cancellation_reason = ? WHERE id = ? AND is_manual = 0');
 if (!$stmt) {
     error_log('[online_menu_order_update] Prepare failed: ' . $conn->error);
     ob_clean();
@@ -52,7 +67,8 @@ if (!$stmt) {
     exit;
 }
 
-if (!$stmt->bind_param('si', $status, $order_id)) {
+$reasonParam = ($cancel_reason !== '') ? $cancel_reason : null;
+if (!$stmt->bind_param('ssi', $status, $reasonParam, $order_id)) {
     error_log('[online_menu_order_update] Bind param failed: ' . $stmt->error);
     ob_clean();
     header('Content-Type: application/json');

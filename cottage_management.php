@@ -1,6 +1,7 @@
 <?php
 include 'config/db.php';
 include 'auth_admin.php';
+$isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin');
 
 // Check and update cottages table schema if needed
 $result = $conn->query("SHOW COLUMNS FROM cottages LIKE 'available_date'");
@@ -143,7 +144,7 @@ include 'partials/head.php';
                                                     <button type=\"button\" class=\"dropdown-item edit-cottage-btn\" data-id=\"{$cottage['id']}\" data-number=\"" . htmlspecialchars($cottage['cottage_number']) . "\" data-price=\"{$cottage['price']}\" data-date-from=\"" . htmlspecialchars($cottage['available_date_from'] ?? '') . "\" data-date-to=\"" . htmlspecialchars($cottage['available_date_to'] ?? '') . "\" data-time-start=\"" . htmlspecialchars($cottage['available_time_start'] ?? '') . "\" data-time-end=\"" . htmlspecialchars($cottage['available_time_end'] ?? '') . "\" data-status=\"{$cottage['status']}\"><i class=\"feather icon-edit\"></i> Edit</button>
                                                     <a href=\"handlers/cottage_handler.php?action=toggle_status&id={$cottage['id']}\" class=\"dropdown-item\" onclick=\"return confirm('Toggle status?')\"><i class=\"feather icon-refresh-cw\"></i> Toggle Status</a>
                                                     <div class=\"dropdown-divider\"></div>
-                                                    <a href=\"handlers/cottage_handler.php?action=delete&id={$cottage['id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Delete this cottage?')\"><i class=\"feather icon-trash\"></i> Delete</a>
+                                                    " . ($isAdmin ? "<a href=\"handlers/cottage_handler.php?action=delete&id={$cottage['id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Delete this cottage?')\"><i class=\"feather icon-trash\"></i> Delete</a>" : "") . "
                                                 </div>
                                             </div>
                                         </td>

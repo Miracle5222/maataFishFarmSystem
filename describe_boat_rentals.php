@@ -1,0 +1,7 @@
+<?php
+require 'config/db.php';
+$result = $conn->query('DESCRIBE boat_rentals');
+while($row = $result->fetch_assoc()) {
+    echo $row['Field'] . ' ' . $row['Type'] . "\n";
+}
+?>

@@ -1,6 +1,7 @@
 <?php
 include 'config/db.php';
 include 'auth_admin.php';
+$isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin');
 
 // Function to format time to AM/PM
 function formatTimeToAMPM($time) {
@@ -159,11 +160,11 @@ include 'partials/head.php';
                                                         <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=completed\" class=\"dropdown-item\" onclick=\"return confirm('Mark as completed?')\"><i class=\"feather icon-check-circle\"></i> Done</a>
                                                         <div class=\"dropdown-divider\"></div>
                                                         <a href=\"handlers/reservation_update_handler.php?id={$reservation['id']}&status=cancelled\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Cancel this reservation?')\"><i class=\"feather icon-x\"></i> Cancel</a>
-                                                        <a href=\"handlers/reservation_delete_handler.php?id={$reservation['id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Are you sure you want to permanently delete this reservation? This action cannot be undone.')\"><i class=\"feather icon-trash-2\"></i> Delete</a>
+                                                        " . ($isAdmin ? "<a href=\"handlers/reservation_delete_handler.php?id={$reservation['id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Are you sure you want to permanently delete this reservation? This action cannot be undone.')\"><i class=\"feather icon-trash-2\"></i> Delete</a>" : "") . "
                                                     </div>
                                                 </div>
                                             </td>
-                                        </tr
+                                        </tr>
                                 ";
                             }
                         } else {
@@ -307,7 +308,7 @@ include 'partials/head.php';
                                                 " . ($cottage_res['reservation_status'] === 'confirmed' ? "<a href=\"handlers/reservation_update_handler.php?id={$cottage_res['reservation_id']}&status=completed\" class=\"dropdown-item\" onclick=\"return confirm('Mark as checked out?')\"><i class=\"feather icon-log-out\"></i> Check Out</a>" : "") . "
                                                 <div class=\"dropdown-divider\"></div>
                                                 <a href=\"handlers/reservation_update_handler.php?id={$cottage_res['reservation_id']}&status=cancelled\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Cancel this reservation?')\"><i class=\"feather icon-x\"></i> Cancel</a>
-                                                <a href=\"handlers/reservation_delete_handler.php?id={$cottage_res['reservation_id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Are you sure you want to permanently delete this reservation? This action cannot be undone.')\"><i class=\"feather icon-trash-2\"></i> Delete</a>
+                                                " . ($isAdmin ? "<a href=\"handlers/reservation_delete_handler.php?id={$cottage_res['reservation_id']}\" class=\"dropdown-item text-danger\" onclick=\"return confirm('Are you sure you want to permanently delete this reservation? This action cannot be undone?')\"><i class=\"feather icon-trash-2\"></i> Delete</a>" : "") . "
                                             </div>
                                         </div>
                                     ";

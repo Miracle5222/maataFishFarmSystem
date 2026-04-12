@@ -20,7 +20,11 @@
                 <?php
                 require __DIR__ . '/config/db.php';
                 $fish = [];
-                $stmt = $conn->prepare('SELECT fish_id, name, local_name, price_per_kg, stock, harvest_schedule, description, status, image FROM fish_species ORDER BY name ASC');
+                $colRes = $conn->query("SHOW COLUMNS FROM fish_species LIKE 'last_stock_out_reason'");
+                if ($colRes && $colRes->num_rows === 0) {
+                    $conn->query("ALTER TABLE fish_species ADD COLUMN last_stock_out_reason TEXT NULL");
+                }
+                $stmt = $conn->prepare('SELECT fish_id, name, local_name, price_per_kg, stock, harvest_schedule, description, status, image, last_stock_out_reason FROM fish_species ORDER BY name ASC');
                 if ($stmt) {
                     $stmt->execute();
                     $res = $stmt->get_result();
@@ -28,6 +32,10 @@
                     $stmt->close();
                 }
                 ?>
+                <div class="d-flex justify-content-end mb-3 m-4">
+                    <button id="stockInBtn" type="button" class="btn btn-sm btn-success mr-2"><i class="feather icon-plus mr-1"></i> Stock-In</button>
+                    <button id="stockOutBtn" type="button" class="btn btn-sm btn-warning"><i class="feather icon-minus mr-1"></i> Stock-Out</button>
+                </div>
                 <table id="fishTable" class="table table-sm table-bordered table-hover mb-0" style="width:100%">
                     <thead class="bg-light">
                         <tr>
@@ -38,7 +46,7 @@
                             <th>Current Stock</th>
 
                             <th>Status</th>
-                            <th>Debug: Raw Description</th>
+                            <th>Description</th>
                             <th class="text-right">Actions</th>
                         </tr>
                     </thead>
@@ -52,7 +60,7 @@
                                 <td><?php echo (int)$f['stock']; ?></td>
 
                                 <td><?php echo htmlspecialchars(ucfirst($f['status'])); ?></td>
-                                <td style="max-width:200px; font-size:11px; word-break:break-all; background:#f9f9f9; color:#333;">
+                                <td style="max-width:250px; font-size:11px; white-space:normal; overflow-wrap:break-word; word-wrap:break-word; background:#f9f9f9; color:#333;">
                                     <?php echo var_export($f['description'], true); ?>
                                 </td>
                                 <td class="text-right">
@@ -65,6 +73,7 @@
                                         data-harvest="<?php echo htmlspecialchars($f['harvest_schedule']); ?>"
                                         data-desc='<?php echo htmlspecialchars(json_encode(($f["description"] === "0" || $f["description"] === 0) ? "" : $f["description"]), ENT_QUOTES, "UTF-8"); ?>'
                                         data-status="<?php echo htmlspecialchars($f['status']); ?>"
+                                        data-stock-reason='<?php echo htmlspecialchars(json_encode($f['last_stock_out_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>'
                                         data-image="<?php echo htmlspecialchars($f['image'] ?? ''); ?>"
                                         title="View"><i class="feather icon-eye"></i></button>
                                     <button class="btn btn-sm btn-icon btn-outline-primary edit-fish"
@@ -160,11 +169,11 @@
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeViewFish()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div style="display:flex; gap:16px; align-items:flex-start;">
+                    <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
                         <div style="flex:0 0 320px;">
                             <img id="viewFishImage" src="assets/img/fish-placeholder.png" alt="Fish image" style="width:100%; height:auto; border-radius:6px; object-fit:cover;">
                         </div>
-                        <div style="flex:1;">
+                        <div style="flex:1; min-width:320px;">
                             <dl>
                                 <dt>Name</dt>
                                 <dd id="viewFishName"></dd>
@@ -180,8 +189,26 @@
                                 <dd id="viewFishStatus"></dd>
                                 <dt>Description</dt>
                                 <dd id="viewFishDesc"></dd>
+                                <dt id="viewFishReasonLabel" style="display:none;">Stock-Out Reason</dt>
+                                <dd id="viewFishReason" style="display:none; white-space:pre-wrap;"></dd>
                             </dl>
                         </div>
+                    </div>
+                    <div id="viewFishStockOutHistory" style="margin-top:24px; display:none;">
+                        <h6 class="mb-2">Stock-Out History</h6>
+                        <div class="table-responsive" style="max-height:280px; overflow-y:auto; display:block;">
+                            <table class="table table-sm table-bordered mb-0" id="stockOutHistoryTable">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="min-width:160px;">Date / Time</th>
+                                        <th style="min-width:70px;">Qty</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="stockOutHistoryEmpty" class="text-muted mt-2" style="display:none;">No stock-out history found.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -191,15 +218,134 @@
         </div>
     </div>
 
+    <div id="stockModal" class="modal" tabindex="-1" role="dialog" style="display:none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stockModalTitle">Stock Adjustment</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeStockModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="stockFishSelect"><strong>Select Fish Species</strong></label>
+                        <select id="stockFishSelect" class="form-control"></select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label><strong>Current Stock</strong></label>
+                            <input id="stockCurrent" class="form-control" type="text" readonly>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="stockQuantity"><strong>Quantity</strong></label>
+                            <input id="stockQuantity" class="form-control" type="number" min="1" value="1">
+                        </div>
+                    </div>
+                    <div class="form-group" id="stockReasonGroup" style="display:none;">
+                        <label for="stockReason"><strong>Reason</strong></label>
+                        <textarea id="stockReason" class="form-control" rows="3" placeholder="Enter stock-out reason"></textarea>
+                    </div>
+                    <div id="stockModalError" class="text-danger" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeStockModal()">Cancel</button>
+                    <button type="button" id="stockModalSubmit" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
+        var fishData = <?php echo json_encode(array_column($fish, null, 'fish_id'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        var stockModalType = '';
         $(function() {
             var tbl = $('#fishTable').DataTable({
                 order: [
                     [0, 'desc']
-                ]
+                ],
+                dom: 'lfrtip'
+            });
+
+            $('#stockInBtn').on('click', function() {
+                stockModalType = 'in';
+                $('#stockModalTitle').text('Stock-In Fish');
+                $('#stockModalSubmit').text('Stock In');
+                openStockModal('in');
+            });
+
+            $('#stockOutBtn').on('click', function() {
+                stockModalType = 'out';
+                $('#stockModalTitle').text('Stock-Out Fish');
+                $('#stockModalSubmit').text('Stock Out');
+                openStockModal('out');
+            });
+
+            $('#stockFishSelect').on('change', updateStockCurrent);
+
+            $('#stockModalSubmit').on('click', function() {
+                var fishId = parseInt($('#stockFishSelect').val(), 10);
+                var qty = parseInt($('#stockQuantity').val(), 10);
+                var reason = $('#stockReason').val().trim();
+                var errorEl = $('#stockModalError');
+
+                if (!fishId || !fishData[fishId]) {
+                    errorEl.text('Please select a fish species.').show();
+                    return;
+                }
+                if (!qty || qty < 1) {
+                    errorEl.text('Enter a valid quantity.').show();
+                    return;
+                }
+                if (stockModalType === 'out' && !reason) {
+                    errorEl.text('Reason is required for stock-out.').show();
+                    return;
+                }
+
+                var fish = fishData[fishId];
+                var currentStock = parseInt(fish.stock, 10) || 0;
+                var newStock = stockModalType === 'out' ? currentStock - qty : currentStock + qty;
+                if (newStock < 0) {
+                    errorEl.text('Stock cannot go below zero.').show();
+                    return;
+                }
+
+                errorEl.hide();
+                var fd = new FormData();
+                fd.append('id', fishId);
+                fd.append('name', fish.name);
+                fd.append('local_name', fish.local_name || '');
+                fd.append('price_per_kg', fish.price_per_kg || 0);
+                fd.append('stock', newStock);
+                fd.append('harvest_schedule', fish.harvest_schedule || '');
+                fd.append('description', fish.description || '');
+                fd.append('status', fish.status || 'available');
+                fd.append('stock_action', stockModalType);
+                fd.append('stock_reason', reason);
+
+                $.ajax({
+                    url: 'handlers/fish_update.php',
+                    method: 'POST',
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                    success: function(resp) {
+                        try {
+                            var j = typeof resp === 'string' ? JSON.parse(resp) : resp;
+                            if (j.ok) {
+                                location.reload();
+                            } else {
+                                errorEl.text(j.msg || 'Failed to update stock.').show();
+                            }
+                        } catch (e) {
+                            errorEl.text('Failed to update stock.').show();
+                        }
+                    },
+                    error: function() {
+                        errorEl.text('Failed to update stock.').show();
+                    }
+                });
             });
 
             $('#fishTable').on('click', '.delete-fish', function() {
@@ -249,6 +395,20 @@
                 $('#viewFishHarvest').text(b.data('harvest') || '-');
                 $('#viewFishStatus').text(b.data('status'));
                 $('#viewFishDesc').text(b.data('desc') || '-');
+                var stockReason = b.attr('data-stock-reason') || '';
+                try {
+                    stockReason = stockReason ? JSON.parse(stockReason) : '';
+                } catch (e) {
+                    stockReason = stockReason || '';
+                }
+                if (stockReason) {
+                    $('#viewFishReasonLabel').show();
+                    $('#viewFishReason').show().text(stockReason);
+                } else {
+                    $('#viewFishReasonLabel').hide();
+                    $('#viewFishReason').hide().text('');
+                }
+                loadStockOutHistory(b.data('id'));
                 openViewFish();
             });
 
@@ -292,5 +452,63 @@
 
         function closeViewFish() {
             $('#viewFishModal').hide();
+        }
+
+        function openStockModal(type) {
+            stockModalType = type || 'in';
+            var select = $('#stockFishSelect');
+            select.empty();
+            $.each(Object.values(fishData), function(index, fish) {
+                select.append($('<option>').val(fish.fish_id).text(fish.name));
+            });
+            $('#stockQuantity').val('1');
+            $('#stockReason').val('');
+            $('#stockModalError').hide();
+            if (stockModalType === 'out') {
+                $('#stockReasonGroup').show();
+            } else {
+                $('#stockReasonGroup').hide();
+            }
+            updateStockCurrent();
+            $('#stockModal').show();
+        }
+
+        function closeStockModal() {
+            $('#stockModal').hide();
+        }
+
+        function updateStockCurrent() {
+            var fishId = parseInt($('#stockFishSelect').val(), 10);
+            if (fishId && fishData[fishId]) {
+                $('#stockCurrent').val(fishData[fishId].stock);
+            } else {
+                $('#stockCurrent').val('0');
+            }
+        }
+
+        function loadStockOutHistory(fishId) {
+            $('#stockOutHistoryTable tbody').empty();
+            $('#viewFishStockOutHistory').hide();
+            $('#stockOutHistoryEmpty').hide();
+            if (!fishId) {
+                $('#stockOutHistoryEmpty').show();
+                return;
+            }
+            $.getJSON('handlers/fish_stock_out_logs.php', { fish_id: fishId }, function(resp) {
+                if (!resp.ok || !Array.isArray(resp.rows) || resp.rows.length === 0) {
+                    $('#stockOutHistoryEmpty').show();
+                    return;
+                }
+                resp.rows.forEach(function(row) {
+                    var tr = $('<tr>');
+                    tr.append($('<td>').text(row.created_at));
+                    tr.append($('<td>').text(row.quantity));
+                    tr.append($('<td>').text(row.reason));
+                    $('#stockOutHistoryTable tbody').append(tr);
+                });
+                $('#viewFishStockOutHistory').show();
+            }).fail(function() {
+                $('#stockOutHistoryEmpty').show();
+            });
         }
     </script>

@@ -135,9 +135,9 @@ function formatDateTime($datetime) {
                                     data-order-date="<?php echo htmlspecialchars(date('M d, Y', strtotime($o['order_date']))); ?>"
                                     data-pickup-date="<?php echo htmlspecialchars($o['pickup_date'] ? formatDateTime($o['pickup_date']) : ''); ?>"
                                     title="View"><i class="feather icon-eye"></i></button>
-                                <button class="btn btn-sm btn-icon btn-outline-danger delete-order" 
-                                    data-id="<?php echo (int)$o['id']; ?>"
-                                    title="Delete"><i class="feather icon-trash-2"></i></button>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                    <button class="btn btn-sm btn-icon btn-outline-danger delete-order" data-id="<?php echo (int)$o['id']; ?>" title="Delete"><i class="feather icon-trash-2"></i></button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php 
@@ -209,6 +209,26 @@ function formatDateTime($datetime) {
     </div>
 </div>
 
+<div id="cancelReasonModal" class="modal" tabindex="-1" role="dialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1050; align-items:center; justify-content:center;">
+    <div class="modal-dialog" role="document" style="max-width:520px; width:100%; margin:0 auto;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancellation Reason</h5>
+                <button type="button" class="close" onclick="closeCancelReasonModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Please provide the reason for cancelling this order.</p>
+                <textarea id="cancelReasonInput" rows="5" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:6px; resize:vertical;" placeholder="Enter cancellation reason..."></textarea>
+                <p id="cancelReasonError" style="color:#c0392b; display:none; margin-top:10px;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCancelReasonModal()">Close</button>
+                <button type="button" id="cancelReasonSubmit" class="btn btn-danger">Submit Reason</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -250,6 +270,8 @@ $(function() {
         loadOrderDetails(id);
     });
 
+    var pendingStatus = '';
+
     // Status update in modal
     $('#statusUpdate').on('change', function() {
         var newStatus = $(this).val();
@@ -257,15 +279,46 @@ $(function() {
             $(this).val('');
             return;
         }
-        
-        $.post('orders_update.php', { order_id: currentOrderId, status: newStatus }, function(resp) {
+
+        if (newStatus === 'cancelled') {
+            pendingStatus = newStatus;
+            $('#cancelReasonInput').val('');
+            $('#cancelReasonError').hide();
+            $('#cancelReasonModal').css('display', 'flex');
+            return;
+        }
+
+        submitOrderStatus(currentOrderId, newStatus, '');
+    });
+
+    $('#cancelReasonSubmit').on('click', function() {
+        var reason = $('#cancelReasonInput').val().trim();
+        if (!reason) {
+            $('#cancelReasonError').text('Cancellation reason is required.').show();
+            return;
+        }
+        submitOrderStatus(currentOrderId, pendingStatus, reason);
+    });
+
+    window.closeCancelReasonModal = function() {
+        $('#cancelReasonModal').hide();
+        $('#statusUpdate').val('');
+        pendingStatus = '';
+    };
+
+    function submitOrderStatus(orderId, newStatus, cancelReason) {
+        var postData = { order_id: orderId, status: newStatus };
+        if (cancelReason) postData.cancel_reason = cancelReason;
+
+        $.post('orders_update.php', postData, function(resp) {
+            closeCancelReasonModal();
             closeViewOrder();
             location.reload();
         }).fail(function() {
-            alert('Failed to update status');
+            $('#cancelReasonError').text('Failed to update status. Please try again.').show();
             $('#statusUpdate').val('');
         });
-    });
+    }
 
     $('#ordersTable').on('click', '.delete-order', function() {
         var id = $(this).data('id');

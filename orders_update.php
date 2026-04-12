@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
 $status = isset($_POST['status']) ? trim($_POST['status']) : '';
+$cancel_reason = isset($_POST['cancel_reason']) ? trim($_POST['cancel_reason']) : '';
 
 if (!$order_id || $status === '') {
     header('Location: orders_view.php?error=invalid');
@@ -24,6 +25,12 @@ if (!$order_id || $status === '') {
 }
 
 require __DIR__ . '/config/db.php';
+
+// Ensure cancellation_reason column exists
+$colCheck = $conn->query("SHOW COLUMNS FROM `orders` LIKE 'cancellation_reason'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE `orders` ADD COLUMN cancellation_reason TEXT NULL");
+}
 
 // Get order and customer details before updating
 $stmt = $conn->prepare('SELECT o.id, o.order_number, o.customer_id, o.pickup_date, c.first_name, c.last_name, c.email FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.id = ?');
@@ -43,14 +50,27 @@ if (!$order) {
     exit;
 }
 
-// Update order status
-$upd = $conn->prepare('UPDATE orders SET status = ? WHERE id = ?');
-if (!$upd) {
-    header('Location: orders_view.php?error=stmt');
-    exit;
+// Update order status and cancellation reason
+if ($status === 'cancelled') {
+    if ($cancel_reason === '') {
+        header('Location: orders_view.php?error=reason_required');
+        exit;
+    }
+    $upd = $conn->prepare('UPDATE orders SET status = ?, cancellation_reason = ? WHERE id = ?');
+    if (!$upd) {
+        header('Location: orders_view.php?error=stmt');
+        exit;
+    }
+    $upd->bind_param('ssi', $status, $cancel_reason, $order_id);
+} else {
+    $upd = $conn->prepare('UPDATE orders SET status = ?, cancellation_reason = NULL WHERE id = ?');
+    if (!$upd) {
+        header('Location: orders_view.php?error=stmt');
+        exit;
+    }
+    $upd->bind_param('si', $status, $order_id);
 }
 
-$upd->bind_param('si', $status, $order_id);
 $ok = $upd->execute();
 $upd->close();
 

@@ -1,4 +1,5 @@
 <?php include 'auth_admin.php'; ?>
+<?php $isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'); ?>
 <?php include 'partials/head.php'; ?>
 <?php include 'partials/sidenav.php'; ?>
 <?php include 'partials/navbar.php'; ?>
@@ -158,7 +159,9 @@ function formatDateTime($datetime) {
                                     <td><?php echo formatDateTime($o['pickup_date']); ?></td>
                                     <td class="text-right">
                                         <button class="btn btn-sm btn-icon btn-outline-info view-menu-order" data-id="<?php echo (int)$o['id']; ?>" title="View"><i class="feather icon-eye"></i></button>
+                                        <?php if ($isAdmin): ?>
                                         <button class="btn btn-sm btn-icon btn-outline-danger delete-menu-order" data-id="<?php echo (int)$o['id']; ?>" data-order="<?php echo htmlspecialchars($o['order_number']); ?>" title="Delete"><i class="feather icon-trash-2"></i></button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php

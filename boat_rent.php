@@ -1,4 +1,5 @@
 <?php include 'auth_admin.php'; ?>
+<?php $isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'); ?>
 <?php include 'partials/head.php'; ?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <?php include 'partials/sidenav.php'; ?>
@@ -352,9 +353,11 @@ if ($cust_stmt) {
                                             <i class="feather icon-x"></i>
                                         </button>
                                     <?php endif; ?>
+                                    <?php if ($isAdmin): ?>
                                     <button class="btn btn-sm btn-icon btn-outline-dark btn-delete-rental" data-rental-id="<?php echo $rental['id']; ?>" title="Delete Rental">
                                         <i class="feather icon-trash-2"></i>
                                     </button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

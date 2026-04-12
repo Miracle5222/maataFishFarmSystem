@@ -7,10 +7,54 @@ if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'staff',
     exit;
 }
 
+$isAdmin = (isset($_SESSION['role']) && $_SESSION['role'] === 'admin');
+
 require 'config/db.php';
 
-// Fixed entrance fee
-$ENTRANCE_FEE = 50;
+function ensureSettingsTable($conn) {
+    $conn->query("CREATE TABLE IF NOT EXISTS `settings` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `setting_key` varchar(100) NOT NULL,
+        `setting_value` text,
+        `description` text,
+        `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+        `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `setting_key` (`setting_key`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+}
+
+function getSettingValue($conn, $key, $default = null) {
+    $stmt = $conn->prepare('SELECT setting_value FROM settings WHERE setting_key = ? LIMIT 1');
+    if (!$stmt) {
+        return $default;
+    }
+    $stmt->bind_param('s', $key);
+    $stmt->execute();
+    $stmt->bind_result($value);
+    if ($stmt->fetch() && $value !== null && $value !== '') {
+        $stmt->close();
+        return is_numeric($value) ? (float)$value : $value;
+    }
+    $stmt->close();
+    return $default;
+}
+
+function setSettingValue($conn, $key, $value) {
+    $stmt = $conn->prepare('INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $key, $value);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+ensureSettingsTable($conn);
+
+// Dynamic entrance fee
+$ENTRANCE_FEE = getSettingValue($conn, 'entrance_fee_per_guest', 50.00);
 
 // Handle form submission
 $message = '';
@@ -21,6 +65,30 @@ $submission_data = null;
 if (isset($_GET['success']) && $_GET['success'] == '1') {
     $message = '✅ Entrance fee record deleted successfully!';
     $message_type = 'success';
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_entrance_fee') {
+    if (!$isAdmin) {
+        $message = 'You do not have permission to update the entrance fee.';
+        $message_type = 'error';
+    } else {
+        $new_fee = trim($_POST['new_entrance_fee'] ?? '');
+        $new_fee = str_replace(',', '.', $new_fee);
+        if ($new_fee === '' || !is_numeric($new_fee) || (float)$new_fee <= 0) {
+            $message = 'Please enter a valid entrance fee greater than 0.';
+            $message_type = 'error';
+        } else {
+            $new_fee_value = round((float)$new_fee, 2);
+            if (setSettingValue($conn, 'entrance_fee_per_guest', number_format($new_fee_value, 2, '.', ''))) {
+                $ENTRANCE_FEE = $new_fee_value;
+                $message = '✅ Entrance fee updated successfully!';
+                $message_type = 'success';
+            } else {
+                $message = 'Failed to update the entrance fee.';
+                $message_type = 'error';
+            }
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] === 'record_guests') {
@@ -176,11 +244,36 @@ include 'partials/head.php';
             </div>
         <?php endif; ?>
 
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-header-title">Entrance Fee Settings</h5>
+                <p class="text-muted mb-0">Current fee per guest: <strong>₱<?php echo number_format($ENTRANCE_FEE, 2); ?></strong></p>
+            </div>
+            <div class="card-body">
+                <?php if ($isAdmin): ?>
+                <form method="POST" style="max-width:420px;">
+                    <input type="hidden" name="action" value="update_entrance_fee">
+                    <div class="form-group">
+                        <label for="new_entrance_fee"><strong>Set Entrance Fee Per Guest (₱)</strong></label>
+                        <input type="text" class="form-control form-control-lg" id="new_entrance_fee" name="new_entrance_fee" value="<?php echo number_format($ENTRANCE_FEE, 2, '.', ''); ?>" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="feather icon-save"></i> Update Entrance Fee
+                    </button>
+                </form>
+                <?php else: ?>
+                <div class="alert alert-info" style="background-color:#e9f7ff;color:#055160;border-color:#b8e1ff;">
+                    Only administrators can update the entrance fee.
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Entrance Fee Input Form -->
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-header-title">Record Entrance Fee</h5>
-                <p class="text-muted mb-0">Fixed Entrance Fee: <strong>₱<?php echo $ENTRANCE_FEE; ?>.00</strong> per guest</p>
+                <p class="text-muted mb-0">Current Entrance Fee: <strong>₱<?php echo number_format($ENTRANCE_FEE, 2); ?></strong> per guest</p>
             </div>
             <div class="card-body">
                 <form method="POST">
@@ -294,6 +387,7 @@ include 'partials/head.php';
                                     <td class="text-right"><strong style="color: #28a745;">₱<?php echo number_format($record['total'], 2); ?></strong></td>
                                     <td><small><?php echo htmlspecialchars($record['user_name']); ?></small></td>
                                     <td class="text-center">
+                                        <?php if ($isAdmin): ?>
                                         <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this entrance fee record?');">
                                             <input type="hidden" name="action" value="delete_record">
                                             <input type="hidden" name="record_id" value="<?php echo $record['id']; ?>">
@@ -301,6 +395,7 @@ include 'partials/head.php';
                                                 <i class="feather icon-trash-2"></i>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

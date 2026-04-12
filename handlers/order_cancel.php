@@ -22,10 +22,11 @@ if (empty($_SESSION['client_id'])) {
 $cid = (int) $_SESSION['client_id'];
 $action = $_POST['action'] ?? null;
 $order_id = (int) ($_POST['order_id'] ?? 0);
+$cancel_reason = trim($_POST['cancel_reason'] ?? '');
 
-if ($action !== 'cancel_order' || !$order_id) {
+if ($action !== 'cancel_order' || !$order_id || $cancel_reason === '') {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing required parameters']);
+    echo json_encode(['success' => false, 'error' => 'Missing required parameters or cancellation reason']);
     exit;
 }
 
@@ -85,10 +86,16 @@ try {
     $delete_items->execute();
     $delete_items->close();
 
-    // Update order status to cancelled
-    $cancel_stmt = $conn->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?');
+    // Ensure cancellation_reason column exists
+    $colCheck = $conn->query("SHOW COLUMNS FROM `orders` LIKE 'cancellation_reason'");
+    if ($colCheck && $colCheck->num_rows === 0) {
+        $conn->query("ALTER TABLE `orders` ADD COLUMN cancellation_reason TEXT NULL");
+    }
+
+    // Update order status to cancelled and save reason
+    $cancel_stmt = $conn->prepare('UPDATE orders SET status = ?, cancellation_reason = ?, updated_at = NOW() WHERE id = ?');
     $status = 'cancelled';
-    $cancel_stmt->bind_param('si', $status, $order_id);
+    $cancel_stmt->bind_param('ssi', $status, $cancel_reason, $order_id);
     $cancel_stmt->execute();
     $cancel_stmt->close();
 
